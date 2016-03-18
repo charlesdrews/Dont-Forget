@@ -2,7 +2,7 @@
 
 ### Research Plan
 1. *Title:* Weather notification app user study
-2. *Authors & Stakeholders:* Charles Drews, charlesdrews@gmail.com
+2. *Authors / Stakeholders:* Charles Drews, charlesdrews@gmail.com
 3. *Date:* March 18, 2016
 4. *Background:* For GA ADI Project 4 I am interested in building an app that provides users very specific weather information via notifications so they don't even have to open the app. This study is intended to identify pain points such an app might alleviate, and features that would make such an app useful.
 5. *Goals:* Determine what specific weather details users need each morning and the most effective means of delivering those details.
