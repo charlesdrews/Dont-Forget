@@ -1,9 +1,7 @@
-package com.charlesdrews.dontforget.WeatherUnderground;
+package com.charlesdrews.dontforget.weather;
 
-import android.util.Log;
-
-import com.charlesdrews.dontforget.WeatherUnderground.Model.HourlyForecast;
-import com.charlesdrews.dontforget.WeatherUnderground.Model.JsonResponse;
+import com.charlesdrews.dontforget.weather.model.HourlyForecast;
+import com.charlesdrews.dontforget.weather.model.JsonResponse;
 
 import java.io.IOException;
 import java.util.List;
@@ -51,7 +49,7 @@ public class Caller {
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
-        WeatherUndergroundService service = retrofit.create(WeatherUndergroundService.class);
+        WeatherService service = retrofit.create(WeatherService.class);
 
         Call<JsonResponse> call = service.getHourly(query);
 
