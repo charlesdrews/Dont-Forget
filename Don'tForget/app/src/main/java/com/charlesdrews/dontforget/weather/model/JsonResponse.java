@@ -1,4 +1,4 @@
-package com.charlesdrews.dontforget.WeatherUnderground.Model;
+package com.charlesdrews.dontforget.weather.model;
 
 import java.util.List;
 

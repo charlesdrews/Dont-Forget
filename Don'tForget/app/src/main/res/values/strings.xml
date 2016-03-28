@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Don\'t Forget</string>
     <string name="action_settings">Settings</string>
+    
+    <string name="authority">com.charlesdrews.dontforget.sync.StubProvider</string>
+    <string name="account_type">wunderground.com</string>
+    <string name="account">default_account</string>
 </resources>
