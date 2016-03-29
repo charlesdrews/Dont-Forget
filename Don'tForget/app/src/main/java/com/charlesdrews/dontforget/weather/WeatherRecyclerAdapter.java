@@ -8,7 +8,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.charlesdrews.dontforget.R;
-import com.charlesdrews.dontforget.weather.model.HourlyForecast;
+import com.charlesdrews.dontforget.weather.model.WeatherData;
+import com.charlesdrews.dontforget.weather.model.WeatherDataHourly;
 
 import java.util.List;
 
@@ -50,7 +51,7 @@ public class WeatherRecyclerAdapter
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        //WeatherData data = mData.get(position);
+        WeatherData data = mData.get(position);
 
         //TODO - update these
         switch (position) {
@@ -60,7 +61,10 @@ public class WeatherRecyclerAdapter
                 break;
             case WEATHER_HOURLY:
                 HourlyWeatherViewHolder hourlyHolder = (HourlyWeatherViewHolder) holder;
-                hourlyHolder.title.setText("Hourly forecast");
+                //hourlyHolder.title.setText("Hourly forecast");
+                WeatherDataHourly dataHourly = (WeatherDataHourly) data;
+                hourlyHolder.title.setText(dataHourly.getHourlyForecasts().get(0).getCondition());
+                //TODO - extend RealmBaseAdapter to make a list here
                 break;
             case WEATHER_DAILY:
                 DailyWeatherViewHolder dailyHolder = (DailyWeatherViewHolder) holder;
@@ -105,39 +109,5 @@ public class WeatherRecyclerAdapter
         public DailyWeatherViewHolder(View itemView) {
             super(itemView);
         }
-    }
-
-    public class WeatherData {}
-
-    public class CurrentWeatherData extends WeatherData {
-        //TODO - finish this class
-        private String placeholder = "current weather placeholder";
-
-        public CurrentWeatherData() {
-
-        }
-
-        public String getPlaceholder() { return placeholder; }
-    }
-
-    public class HoursWeatherData extends WeatherData {
-        private List<HourlyForecast> hourlyForecasts;
-
-        public HoursWeatherData(int type, List<HourlyForecast> hourlyForecasts) {
-            this.hourlyForecasts = hourlyForecasts;
-        }
-
-        public List<HourlyForecast> getHourlyForecasts() { return hourlyForecasts; }
-    }
-
-    public class DaysWeatherData extends WeatherData {
-        //TODO - finish this class
-        private String placeholder = "current weather placeholder";
-
-        public DaysWeatherData() {
-
-        }
-
-        public String getPlaceholder() { return placeholder; }
     }
 }

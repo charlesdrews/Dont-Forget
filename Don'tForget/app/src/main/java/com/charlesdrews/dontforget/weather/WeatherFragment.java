@@ -11,14 +11,16 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.charlesdrews.dontforget.R;
-import com.charlesdrews.dontforget.weather.WeatherRecyclerAdapter;
+import com.charlesdrews.dontforget.weather.model.HourlyForecast;
+import com.charlesdrews.dontforget.weather.model.WeatherData;
+import com.charlesdrews.dontforget.weather.model.WeatherDataHourly;
 
 import java.util.ArrayList;
 
+import io.realm.Realm;
+import io.realm.RealmResults;
 
-/**
- * A simple {@link Fragment} subclass.
- */
+
 public class WeatherFragment extends Fragment {
     private Context mContext;
     private RecyclerView mRecycler;
@@ -42,9 +44,23 @@ public class WeatherFragment extends Fragment {
 
         mRecycler.setLayoutManager(new LinearLayoutManager(getActivity()));
 
+
         //TODO - populate ArrayList w/ actual data
-        ArrayList<WeatherRecyclerAdapter.WeatherData> data = new ArrayList<>(3);
+        ArrayList<WeatherData> data = new ArrayList<>(3);
+        data.add(0, new WeatherData()); // current weather
+
+        // get hourly forecast data from Realm db
+        Realm realm = Realm.getDefaultInstance();
+        //TODO - sort the results
+        RealmResults<HourlyForecast> hourlyForecasts = realm.where(HourlyForecast.class)
+                .findAll();
+        data.add(1, new WeatherDataHourly(1, hourlyForecasts));
+
+        data.add(2, new WeatherData()); // daily weather
+
         WeatherRecyclerAdapter adapter = new WeatherRecyclerAdapter(getActivity(), data);
         mRecycler.setAdapter(adapter);
     }
+
+    //TODO - refresh data on pullDown gesture
 }
