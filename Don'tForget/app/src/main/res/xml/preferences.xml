@@ -13,8 +13,7 @@
             android:title="@string/pref_title_weather_static_location"
             android:key="@string/pref_key_weather_static_location"
             android:dependency="@string/pref_key_weather_geo"
-            android:defaultValue="@string/weather_static_location_default"
-            />
+            android:defaultValue="@string/weather_static_location_default" />
 
         <ListPreference
             android:title="@string/pref_title_weather_units"
