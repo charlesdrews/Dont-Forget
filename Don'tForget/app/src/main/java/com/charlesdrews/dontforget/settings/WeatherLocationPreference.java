@@ -61,7 +61,6 @@ public class WeatherLocationPreference extends EditTextPreference {
     }
 
     public class WeatherLocationAdapter extends ArrayAdapter<Location> {
-        private int mResource = android.R.layout.simple_dropdown_item_1line;
         private Context mContext;
         private List<Location> mData;
 
@@ -78,10 +77,16 @@ public class WeatherLocationPreference extends EditTextPreference {
                         .inflate(android.R.layout.simple_dropdown_item_1line, parent, false);
             }
 
-            TextView textView = (TextView) convertView.findViewById(android.R.id.text1);
-            if (mData != null && mData.size() > position) {
-                textView.setText(mData.get(position).getName());
-            }
+            final TextView textView = (TextView) convertView.findViewById(android.R.id.text1);
+            textView.setText(mData.get(position).getName());
+
+            convertView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mEditText.setText(textView.getText());
+                    mEditText.dismissDropDown();
+                }
+            });
             return convertView;
         }
 
@@ -90,18 +95,19 @@ public class WeatherLocationPreference extends EditTextPreference {
             return mData.size();
         }
 
+        /**
+         * Don't want to do any filtering in this case, just use the results from
+         * the Weather Underground AutoComplete API
+         * (https://www.wunderground.com/weather/api/d/docs?d=autocomplete-api)
+         */
         @Override
         public Filter getFilter() {
             return new Filter() {
                 @Override
-                protected FilterResults performFiltering(CharSequence constraint) {
-                    return null;
-                }
+                protected FilterResults performFiltering(CharSequence constraint) { return null; }
 
                 @Override
-                protected void publishResults(CharSequence constraint, FilterResults results) {
-
-                }
+                protected void publishResults(CharSequence constraint, FilterResults results) {}
             };
         }
     }
@@ -118,6 +124,7 @@ public class WeatherLocationPreference extends EditTextPreference {
         protected void onPostExecute(Boolean aBoolean) {
             super.onPostExecute(aBoolean);
             if (aBoolean) {
+                Log.d(TAG, "onPostExecute: results rec'd for init");
                 mEditText = new AutoCompleteTextView(mContext);
                 mEditText.setThreshold(2);
 
@@ -126,7 +133,8 @@ public class WeatherLocationPreference extends EditTextPreference {
 
                 mEditText.addTextChangedListener(new TextWatcher() {
                     @Override
-                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    }
 
                     @Override
                     public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -134,7 +142,8 @@ public class WeatherLocationPreference extends EditTextPreference {
                     }
 
                     @Override
-                    public void afterTextChanged(Editable s) {}
+                    public void afterTextChanged(Editable s) {
+                    }
                 });
             }
         }
@@ -154,6 +163,7 @@ public class WeatherLocationPreference extends EditTextPreference {
         protected void onPostExecute(Boolean aBoolean) {
             super.onPostExecute(aBoolean);
             if (aBoolean) {
+                Log.d(TAG, "onPostExecute: results rec'd");
                 mSuggestions.clear();
                 mSuggestions.addAll(mLocationResults);
                 mAdapter.notifyDataSetChanged();
