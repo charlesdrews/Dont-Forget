@@ -27,29 +27,35 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".settings.SettingsActivity"
+            android:label="@string/title_activity_settings" />
+
         <service android:name=".sync.AuthenticatorService">
             <intent-filter>
-                <action android:name="android.accounts.AccountAuthenticator"/>
+                <action android:name="android.accounts.AccountAuthenticator" />
             </intent-filter>
+
             <meta-data
                 android:name="android.accounts.AccountAuthenticator"
                 android:resource="@xml/authenticator" />
         </service>
-        
+
         <provider
-            android:name="com.charlesdrews.dontforget.sync.StubProvider"
+            android:name=".sync.StubProvider"
             android:authorities="@string/authority"
             android:exported="false"
             android:syncable="true" />
 
         <service android:name=".sync.SyncService">
             <intent-filter>
-                <action android:name="android.content.SyncAdapter"/>
+                <action android:name="android.content.SyncAdapter" />
             </intent-filter>
+
             <meta-data
                 android:name="android.content.SyncAdapter"
                 android:resource="@xml/syncadapter" />
         </service>
+
     </application>
 
 </manifest>
