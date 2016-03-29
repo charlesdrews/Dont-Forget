@@ -10,7 +10,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
@@ -28,21 +27,19 @@ import java.util.List;
 public class WeatherLocationPreference extends EditTextPreference {
     private static final String TAG = "WeatherLocationPref";
 
-    private Context mContext;
     private AutoCompleteTextView mEditText;
     private List<Location> mSuggestions;
     private WeatherLocationAdapter mAdapter;
 
     public WeatherLocationPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
-        mContext = context;
-        new InitAutoCompleteAsync().execute(getText());
     }
 
     @Override
     protected void onBindDialogView(View view) {
         super.onBindDialogView(view);
 
+        /*
         EditText editText = mEditText;
         editText.setText(getText());
 
@@ -53,11 +50,40 @@ public class WeatherLocationPreference extends EditTextPreference {
             }
             onAddEditTextToDialogView(view, editText);
         }
+        */
+        // save params from existing EditText, then remove it
+        EditText editText = (EditText) view.findViewById(android.R.id.edit);
+        ViewGroup.LayoutParams params = editText.getLayoutParams();
+        ViewGroup viewGroup = (ViewGroup) editText.getParent();
+        String currentText = editText.getText().toString();
+        viewGroup.removeView(editText);
+
+        // replace with AutoCompleteTextView
+        mEditText = new AutoCompleteTextView(getContext());
+        mEditText.setLayoutParams(params);
+        mEditText.setId(android.R.id.edit);
+        mEditText.setText(currentText);
+        mEditText.setThreshold(2);
+        viewGroup.addView(mEditText);
+
+        // initialize the adapter
+        new InitAdapterAsync().execute(getText());
     }
 
     @Override
     public EditText getEditText() {
-        return super.getEditText();
+        return mEditText;
+    }
+
+    @Override
+    protected void onDialogClosed(boolean positiveResult) {
+        super.onDialogClosed(positiveResult);
+        if (positiveResult && mEditText != null) {
+            String value = mEditText.getText().toString();
+            if (callChangeListener(value)) {
+                setText(value);
+            }
+        }
     }
 
     public class WeatherLocationAdapter extends ArrayAdapter<Location> {
@@ -112,7 +138,7 @@ public class WeatherLocationPreference extends EditTextPreference {
         }
     }
 
-    public class InitAutoCompleteAsync extends AsyncTask<String, Void, Boolean> {
+    public class InitAdapterAsync extends AsyncTask<String, Void, Boolean> {
         @Override
         protected Boolean doInBackground(String... params) {
             Log.d(TAG, "doInBackground: begin search for init");
@@ -125,10 +151,9 @@ public class WeatherLocationPreference extends EditTextPreference {
             super.onPostExecute(aBoolean);
             if (aBoolean) {
                 Log.d(TAG, "onPostExecute: results rec'd for init");
-                mEditText = new AutoCompleteTextView(mContext);
-                mEditText.setThreshold(2);
+                //mEditText = new AutoCompleteTextView(mContext);
 
-                mAdapter = new WeatherLocationAdapter(mContext, mSuggestions);
+                mAdapter = new WeatherLocationAdapter(getContext(), mSuggestions);
                 mEditText.setAdapter(mAdapter);
 
                 mEditText.addTextChangedListener(new TextWatcher() {
