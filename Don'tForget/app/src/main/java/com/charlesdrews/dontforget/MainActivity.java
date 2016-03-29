@@ -4,6 +4,7 @@ import android.Manifest;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -20,6 +21,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import com.charlesdrews.dontforget.birthdays.BirthdaysHelper;
+import com.charlesdrews.dontforget.settings.SettingsActivity;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -80,11 +82,12 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_settings:
-                //TODO - set up settings activity
-                return true;
+                startActivity(new Intent(this, SettingsActivity.class));
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
+        return true;
     }
 
     public Account createAccount() {

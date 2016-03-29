@@ -1,8 +1,25 @@
 <resources>
     <string name="app_name">Don\'t Forget</string>
     <string name="action_settings">Settings</string>
+    <string name="title_activity_settings">Settings</string>
 
     <string name="authority">com.charlesdrews.dontforget.sync.StubProvider</string>
     <string name="account_type">wunderground.com</string>
     <string name="account">default_account</string>
+
+    <string name="pref_title_weather_category">Weather</string>
+    <string name="pref_key_weather_category">pref_key_weather_category</string>
+    <string name="pref_title_weather_geo">Use device location (GPS)</string>
+    <string name="pref_key_weather_geo">pref_key_weather_geo</string>
+    <string name="pref_title_weather_static_location">Manually set location</string>
+    <string name="pref_key_weather_static_location">pref_key_weather_static_location</string>
+    <string name="weather_static_location_default">No location set</string>
+    <string name="pref_title_weather_units">Units</string>
+    <string name="pref_key_weather_units">pref_key_weather_units</string>
+    <string name="weather_units_list_pref_title">Weather units</string>
+    <string name="weather_default_unit">English</string>
+    <string-array name="weather_units">
+        <item>@string/weather_default_unit</item>
+        <item>Metric</item>
+    </string-array>
 </resources>

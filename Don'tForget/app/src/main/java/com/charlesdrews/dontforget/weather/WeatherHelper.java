@@ -1,7 +1,9 @@
 package com.charlesdrews.dontforget.weather;
 
 import com.charlesdrews.dontforget.weather.model.HourlyForecast;
-import com.charlesdrews.dontforget.weather.model.JsonResponse;
+import com.charlesdrews.dontforget.weather.model.HourlyForecastResponse;
+import com.charlesdrews.dontforget.weather.model.Location;
+import com.charlesdrews.dontforget.weather.model.LocationResponse;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
@@ -27,7 +29,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
  */
 public class WeatherHelper {
     private static final String API_KEY = "37c7eb855c9fb351";
-    private static final String BASE_URL = "http://api.wunderground.com/api/" + API_KEY + "/";
+    private static final String FORECAST_BASE_URL = "http://api.wunderground.com/api/" + API_KEY + "/";
+    private static final String LOCATIONS_BASE_URL = "http://autocomplete.wunderground.com/";
 
     private WeatherHelper() {}
 
@@ -50,15 +53,14 @@ public class WeatherHelper {
      */
     public static List<HourlyForecast> getHourlyForecasts(String query) {
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(FORECAST_BASE_URL)
                 .addConverterFactory(getGsonConverterFactoryForRealm())
                 .build();
 
         WeatherService service = retrofit.create(WeatherService.class);
+        Call<HourlyForecastResponse> call = service.getHourly(query);
 
-        Call<JsonResponse> call = service.getHourly(query);
-
-        Response<JsonResponse> response = null;
+        Response<HourlyForecastResponse> response = null;
         try {
             response = call.execute();
         } catch (IOException e) {
@@ -67,6 +69,32 @@ public class WeatherHelper {
 
         if (response != null && response.body() != null) {
             return response.body().getHourlyForecasts();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Retrieves a list of locations matching query
+     */
+    public static List<Location> getLocations(String query) {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(LOCATIONS_BASE_URL)
+                .addConverterFactory(getGsonConverterFactoryForRealm())
+                .build();
+
+        LocationService service = retrofit.create(LocationService.class);
+        Call<LocationResponse> call = service.getLocations(query);
+
+        Response<LocationResponse> response = null;
+        try {
+            response = call.execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (response != null && response.body() != null) {
+            return response.body().getRESULTS();
         } else {
             return null;
         }
@@ -92,12 +120,20 @@ public class WeatherHelper {
 
     public static void main(String[] args) {
         // testing
+        /*
         List<HourlyForecast> forecasts = getHourlyForecasts("40.743043,-73.981797");
         if (forecasts != null) {
             for (HourlyForecast forecast : forecasts) {
                 System.out.println(forecast.getFCTTIME().getHour());
                 System.out.println(forecast.getTemp().getEnglish());
                 System.out.println();
+            }
+        }
+        */
+        List<Location> locations = getLocations("New York");
+        if (locations != null) {
+            for (Location location : locations) {
+                System.out.println(location.getName());
             }
         }
     }

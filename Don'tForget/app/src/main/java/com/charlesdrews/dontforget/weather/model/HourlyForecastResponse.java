@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Created by charlie on 3/16/16.
  */
-public class JsonResponse {
+public class HourlyForecastResponse {
     private List<HourlyForecast> hourly_forecast;
 
     public List<HourlyForecast> getHourlyForecasts() {

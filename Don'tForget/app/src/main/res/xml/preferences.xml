@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:title="@string/pref_title_weather_category"
+        android:key="@string/pref_key_weather_category">
+        <SwitchPreference
+            android:title="@string/pref_title_weather_geo"
+            android:key="@string/pref_key_weather_geo"
+            android:defaultValue="true"
+            android:disableDependentsState="true" />
+
+        <com.charlesdrews.dontforget.settings.WeatherLocationPreference
+            android:title="@string/pref_title_weather_static_location"
+            android:key="@string/pref_key_weather_static_location"
+            android:dependency="@string/pref_key_weather_geo"
+            android:defaultValue="@string/weather_static_location_default"
+            />
+
+        <ListPreference
+            android:title="@string/pref_title_weather_units"
+            android:key="@string/pref_key_weather_units"
+            android:summary="%s"
+            android:dialogTitle="@string/weather_units_list_pref_title"
+            android:entries="@array/weather_units"
+            android:entryValues="@array/weather_units"
+            android:defaultValue="@string/weather_default_unit" />
+    </PreferenceCategory>
+</PreferenceScreen>
