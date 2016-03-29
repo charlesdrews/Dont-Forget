@@ -9,6 +9,14 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.charlesdrews.dontforget.weather.WeatherHelper;
+import com.charlesdrews.dontforget.weather.model.HourlyForecast;
+
+import java.util.List;
+
+import io.realm.Realm;
+import io.realm.RealmResults;
+
 /**
  * Created by charlie on 3/22/16.
  */
@@ -28,8 +36,25 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
-        //TODO - make API call
+        Log.d(TAG, "onPerformSync: making API call");
 
-        Log.d(TAG, "onPerformSync: " + System.currentTimeMillis());
+        //TODO - get geolocation
+        List<HourlyForecast> newHourlyForecasts = WeatherHelper.getHourlyForecasts("40.743043,-73.981797");
+
+        if (newHourlyForecasts != null && newHourlyForecasts.size() > 0) {
+            Log.d(TAG, "onPerformSync: API call yielded results");
+
+            Realm realm = Realm.getDefaultInstance();
+            RealmResults<HourlyForecast> oldHourlyForecasts = realm.where(HourlyForecast.class).findAll();
+
+            realm.beginTransaction();
+            oldHourlyForecasts.clear();
+            realm.copyToRealm(newHourlyForecasts);
+            realm.commitTransaction();
+
+            realm.close();
+
+            Log.d(TAG, "onPerformSync: results persisted to db");
+        }
     }
 }

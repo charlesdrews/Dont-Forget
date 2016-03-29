@@ -19,7 +19,7 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.charlesdrews.dontforget.birthdays.Birthdays;
+import com.charlesdrews.dontforget.birthdays.BirthdaysHelper;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
 
         //TODO - create & launch an async task that looks for weather data in database, and
         //if none present request manual sync, otherwise load data from db into UI
-        requestManualSync();
+        //requestManualSync();
 
 
         // set up view pager & tab layout
@@ -140,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void readContacts() {
         //TODO - replace with function that does something other than log the birthdays
-        Birthdays.logBirthdays(getApplicationContext());
+        BirthdaysHelper.logBirthdays(getApplicationContext());
     }
 
     @Override

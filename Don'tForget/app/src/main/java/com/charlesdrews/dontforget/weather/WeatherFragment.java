@@ -1,4 +1,4 @@
-package com.charlesdrews.dontforget;
+package com.charlesdrews.dontforget.weather;
 
 
 import android.content.Context;
@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.weather.WeatherRecyclerAdapter;
 
 import java.util.ArrayList;

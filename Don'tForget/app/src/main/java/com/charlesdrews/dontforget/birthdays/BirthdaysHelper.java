@@ -11,8 +11,8 @@ import android.util.Log;
 /**
  * Created by charlie on 3/28/16.
  */
-public class Birthdays {
-    private static final String TAG = "Birthdays";
+public class BirthdaysHelper {
+    private static final String TAG = "BirthdaysHelper";
 
     public static Cursor getContactsBirthdays(Context context) {
         Uri uri = ContactsContract.Data.CONTENT_URI;
