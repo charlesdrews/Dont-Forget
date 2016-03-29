@@ -2,17 +2,22 @@ package com.charlesdrews.dontforget.weather;
 
 import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 import com.charlesdrews.dontforget.weather.model.JsonResponse;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.IOException;
 import java.util.List;
 
+import io.realm.RealmObject;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
- * Provides static method to retrieve forecast data from the Weather Underground API
+ * Provides static method to retrieve forecast data from the WeatherHelper Underground API
  * (http://www.wunderground.com/weather/api/d/docs) and return HourlyForecast objects
  *
  * Sample call for NYC latitude, longitude
@@ -20,11 +25,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
  *
  * Created by charlie on 3/16/16.
  */
-public class Weather {
+public class WeatherHelper {
     private static final String API_KEY = "37c7eb855c9fb351";
     private static final String BASE_URL = "http://api.wunderground.com/api/" + API_KEY + "/";
 
-    private Weather() {}
+    private WeatherHelper() {}
 
     /**
      * Retrieves a list of HourlyForecast objects from the WeatherUnderground API. This method
@@ -43,10 +48,10 @@ public class Weather {
      * @param query - location query string
      * @return List of HourlyForecast objects, or null if no response or error response
      */
-    private static List<HourlyForecast> getHourlyForecasts(String query) {
+    public static List<HourlyForecast> getHourlyForecasts(String query) {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(getGsonConverterFactoryForRealm())
                 .build();
 
         WeatherService service = retrofit.create(WeatherService.class);
@@ -65,6 +70,24 @@ public class Weather {
         } else {
             return null;
         }
+    }
+
+    public static GsonConverterFactory getGsonConverterFactoryForRealm() {
+        Gson gson = new GsonBuilder()
+                .setExclusionStrategies(new ExclusionStrategy() {
+                    @Override
+                    public boolean shouldSkipField(FieldAttributes f) {
+                        return f.getDeclaringClass().equals(RealmObject.class);
+                    }
+
+                    @Override
+                    public boolean shouldSkipClass(Class<?> clazz) {
+                        return false;
+                    }
+                })
+                .create();
+
+        return GsonConverterFactory.create(gson);
     }
 
     public static void main(String[] args) {

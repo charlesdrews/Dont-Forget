@@ -4,6 +4,10 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 
+import com.charlesdrews.dontforget.birthdays.BirthdaysFragment;
+import com.charlesdrews.dontforget.tasks.TaskFragment;
+import com.charlesdrews.dontforget.weather.WeatherFragment;
+
 /**
  * Created by charlie on 3/28/16.
  */

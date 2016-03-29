@@ -1,9 +1,11 @@
 package com.charlesdrews.dontforget.weather.model;
 
+import io.realm.RealmObject;
+
 /**
  * Created by charlie on 3/16/16.
  */
-public class FctTime {
+public class FctTime extends RealmObject {
     private int year, mon, mday, hour, min, isdst;
     private String month_name, month_name_abbrev, weekday_name, weekday_name_abbrev, ampm;
 
