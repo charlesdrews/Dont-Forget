@@ -9,7 +9,7 @@
             android:defaultValue="true"
             android:disableDependentsState="true" />
 
-        <EditTextPreference
+        <com.charlesdrews.dontforget.settings.WeatherLocationPreference
             android:title="@string/pref_title_weather_static_location"
             android:key="@string/pref_key_weather_static_location"
             android:dependency="@string/pref_key_weather_geo"

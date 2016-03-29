@@ -1,12 +1,10 @@
 package com.charlesdrews.dontforget.settings;
 
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
-import android.view.KeyEvent;
 
 import com.charlesdrews.dontforget.R;
 
@@ -14,21 +12,15 @@ import com.charlesdrews.dontforget.R;
  * Created by charlie on 3/29/16.
  */
 public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
-    private EditTextPreference mWeatherStaticLocation;
+    private WeatherLocationPreference mWeatherStaticLocation;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preferences);
 
-        mWeatherStaticLocation = (EditTextPreference)
+        mWeatherStaticLocation = (WeatherLocationPreference)
                 findPreference(getString(R.string.pref_key_weather_static_location));
-        mWeatherStaticLocation.getDialog().setOnKeyListener(new DialogInterface.OnKeyListener() {
-            @Override
-            public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
-                return false;
-            }
-        });
     }
 
     @Override
