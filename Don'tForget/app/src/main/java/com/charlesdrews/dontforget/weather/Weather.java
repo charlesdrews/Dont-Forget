@@ -20,11 +20,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
  *
  * Created by charlie on 3/16/16.
  */
-public class Caller {
+public class Weather {
     private static final String API_KEY = "37c7eb855c9fb351";
     private static final String BASE_URL = "http://api.wunderground.com/api/" + API_KEY + "/";
 
-    private Caller() {}
+    private Weather() {}
 
     /**
      * Retrieves a list of HourlyForecast objects from the WeatherUnderground API. This method

@@ -8,7 +8,6 @@ import android.support.v4.app.FragmentPagerAdapter;
  * Created by charlie on 3/28/16.
  */
 public class TabPagerAdapter extends FragmentPagerAdapter {
-    private static final int NUM_PAGES = 3;
     private static final String[] PAGE_TITLES = { "Weather", "Tasks", "Birthdays" };
 
     public TabPagerAdapter(FragmentManager fm) {
@@ -31,7 +30,7 @@ public class TabPagerAdapter extends FragmentPagerAdapter {
 
     @Override
     public int getCount() {
-        return NUM_PAGES;
+        return PAGE_TITLES.length;
     }
 
     @Override
