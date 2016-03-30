@@ -3,6 +3,8 @@ package com.charlesdrews.dontforget.settings;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
+import com.charlesdrews.dontforget.settings.SettingsFragment;
+
 /**
  * Created by charlie on 3/29/16.
  */
