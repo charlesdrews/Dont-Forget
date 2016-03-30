@@ -5,11 +5,15 @@ import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.charlesdrews.dontforget.weather.WeatherHelper;
+import com.charlesdrews.dontforget.MainActivity;
+import com.charlesdrews.dontforget.R;
+import com.charlesdrews.dontforget.weather.retrofit.WeatherHelper;
 import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 
 import java.util.List;
@@ -18,32 +22,58 @@ import io.realm.Realm;
 import io.realm.RealmResults;
 
 /**
+ * Call WeatherUnderground API, save data in Realm db, notify content resolver
  * Created by charlie on 3/22/16.
  */
 public class SyncAdapter extends AbstractThreadedSyncAdapter {
     private static final String TAG = "SyncAdapter";
+    public static final String LOCATION_QUERY_KEY = "locationQueryKey";
+
+    private Context mContext;
     private ContentResolver mContentResolver;
 
     public SyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
-        mContentResolver = context.getContentResolver();
+        mContext = context;
+        mContentResolver = mContext.getContentResolver();
     }
 
     public SyncAdapter(Context context, boolean autoInitialize, boolean allowParallelSyncs) {
         super(context, autoInitialize, allowParallelSyncs);
-        mContentResolver = context.getContentResolver();
+        mContext = context;
+        mContentResolver = mContext.getContentResolver();
     }
 
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
-        Log.d(TAG, "onPerformSync: making API call");
+        String query = extras.getString(LOCATION_QUERY_KEY);
+        if (query != null) {
+            getAndSaveForecastData(query);
 
-        //TODO - get geolocation
-        List<HourlyForecast> newHourlyForecasts = WeatherHelper.getHourlyForecasts("40.743043,-73.981797");
+            // save sync time to shared preferences
+            String syncTimeKey = mContext.getString(R.string.weather_last_sync_time_key);
+            PreferenceManager.getDefaultSharedPreferences(mContext)
+                    .edit()
+                    .putLong(syncTimeKey, System.currentTimeMillis())
+                    .commit();
+
+            mContentResolver.notifyChange(StubProvider.WEATHER_URI, null);
+        }
+    }
+
+    public void getAndSaveForecastData(String query) {
+        if (query == null || query.isEmpty() ||
+                query.equals(getContext().getString(R.string.weather_static_location_default))) {
+            Log.d(TAG, "getAndSaveForecastData: location query string is blank");
+            //TODO - ask user to do one or the other - launch settings activity?
+            return;
+        }
+
+        Log.d(TAG, "getAndSaveForecastData: making API call w/ query " + query);
+        List<HourlyForecast> newHourlyForecasts = WeatherHelper.getHourlyForecasts(query);
 
         if (newHourlyForecasts != null && newHourlyForecasts.size() > 0) {
-            Log.d(TAG, "onPerformSync: API call yielded results");
-
+            Log.d(TAG, "getAndSaveForecastData: API call yielded results");
             Realm realm = Realm.getDefaultInstance();
             RealmResults<HourlyForecast> oldHourlyForecasts = realm.where(HourlyForecast.class).findAll();
 
@@ -53,8 +83,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             realm.commitTransaction();
 
             realm.close();
-
-            Log.d(TAG, "onPerformSync: results persisted to db");
+            Log.d(TAG, "getAndSaveForecastData: results persisted to db");
         }
     }
 }

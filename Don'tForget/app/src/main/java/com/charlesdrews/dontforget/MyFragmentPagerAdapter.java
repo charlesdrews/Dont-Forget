@@ -11,10 +11,10 @@ import com.charlesdrews.dontforget.weather.WeatherFragment;
 /**
  * Created by charlie on 3/28/16.
  */
-public class TabPagerAdapter extends FragmentPagerAdapter {
+public class MyFragmentPagerAdapter extends FragmentPagerAdapter {
     private static final String[] PAGE_TITLES = { "Weather", "Tasks", "Birthdays" };
 
-    public TabPagerAdapter(FragmentManager fm) {
+    public MyFragmentPagerAdapter(FragmentManager fm) {
         super(fm);
     }
 

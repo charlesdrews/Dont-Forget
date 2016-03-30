@@ -12,6 +12,11 @@ import android.support.annotation.Nullable;
  * Created by charlie on 3/22/16.
  */
 public class StubProvider extends ContentProvider {
+    public static final String AUTHORITY = "com.charlesdrews.dontforget.sync.StubProvider";
+    public static final String BASE_URI_STRING = "content://" + AUTHORITY;
+    public static final String WEATHER_PATH = "WEATHER";
+    public static final Uri WEATHER_URI = Uri.parse(BASE_URI_STRING + "/" + WEATHER_PATH);
+
     @Override
     public boolean onCreate() {
         return true;

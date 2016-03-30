@@ -1,4 +1,4 @@
-package com.charlesdrews.dontforget.weather;
+package com.charlesdrews.dontforget.weather.retrofit;
 
 import com.charlesdrews.dontforget.weather.model.LocationResponse;
 
