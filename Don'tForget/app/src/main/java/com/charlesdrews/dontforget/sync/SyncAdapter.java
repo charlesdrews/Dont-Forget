@@ -11,8 +11,9 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import com.charlesdrews.dontforget.MainActivity;
 import com.charlesdrews.dontforget.R;
-import com.charlesdrews.dontforget.weather.WeatherHelper;
+import com.charlesdrews.dontforget.weather.retrofit.WeatherHelper;
 import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 
 import java.util.List;
@@ -25,46 +26,52 @@ import io.realm.RealmResults;
  */
 public class SyncAdapter extends AbstractThreadedSyncAdapter {
     private static final String TAG = "SyncAdapter";
+    public static final String LOCATION_QUERY_KEY = "locationQueryKey";
+
+    private Context mContext;
     private ContentResolver mContentResolver;
 
     public SyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
-        mContentResolver = context.getContentResolver();
+        mContext = context;
+        mContentResolver = mContext.getContentResolver();
     }
 
     public SyncAdapter(Context context, boolean autoInitialize, boolean allowParallelSyncs) {
         super(context, autoInitialize, allowParallelSyncs);
-        mContentResolver = context.getContentResolver();
+        mContext = context;
+        mContentResolver = mContext.getContentResolver();
     }
 
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
-        Log.d(TAG, "onPerformSync: making API call");
+        String query = extras.getString(LOCATION_QUERY_KEY);
+        if (query != null) {
+            getAndSaveForecastData(query);
 
-        String query = null; //"40.743043,-73.981797"
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+            // save sync time to shared preferences
+            PreferenceManager.getDefaultSharedPreferences(mContext)
+                    .edit()
+                    .putLong(MainActivity.WEATHER_LAST_SYNC_TIME_KEY, System.currentTimeMillis())
+                    .commit();
 
-        // check if geolocation turned on in preferences
-        if (prefs.getBoolean(getContext().getString(R.string.pref_key_weather_geo), false)) {
-            Log.d(TAG, "onPerformSync: geolocation on");
-            //TODO - get last known location, save in query
-        } else {
-            // if not, then check if a static location has been set
-            Log.d(TAG, "onPerformSync: getting static location");
-            query = prefs.getString(getContext().getString(R.string.pref_key_weather_static_location), null);
+            mContentResolver.notifyChange(StubProvider.WEATHER_URI, null);
         }
+    }
 
-        if (query == null || query.equals(getContext().getString(R.string.weather_static_location_default))) {
-            Log.d(TAG, "onPerformSync: geolocation off & static location not set");
-            //TODO - ask user to do one or the other
+    public void getAndSaveForecastData(String query) {
+        if (query == null || query.isEmpty() ||
+                query.equals(getContext().getString(R.string.weather_static_location_default))) {
+            Log.d(TAG, "getAndSaveForecastData: location query string is blank");
+            //TODO - ask user to do one or the other - launch settings activity?
             return;
         }
 
+        Log.d(TAG, "getAndSaveForecastData: making API call w/ query " + query);
         List<HourlyForecast> newHourlyForecasts = WeatherHelper.getHourlyForecasts(query);
 
         if (newHourlyForecasts != null && newHourlyForecasts.size() > 0) {
-            Log.d(TAG, "onPerformSync: API call yielded results");
-
+            Log.d(TAG, "getAndSaveForecastData: API call yielded results");
             Realm realm = Realm.getDefaultInstance();
             RealmResults<HourlyForecast> oldHourlyForecasts = realm.where(HourlyForecast.class).findAll();
 
@@ -74,8 +81,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             realm.commitTransaction();
 
             realm.close();
-
-            Log.d(TAG, "onPerformSync: results persisted to db");
+            Log.d(TAG, "getAndSaveForecastData: results persisted to db");
         }
     }
 }

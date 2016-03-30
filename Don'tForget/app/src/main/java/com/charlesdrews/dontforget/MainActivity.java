@@ -11,6 +11,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -26,9 +27,9 @@ import com.charlesdrews.dontforget.settings.SettingsActivity;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int READ_CONTACTS_PERMISSION_REQUEST_CODE = 123;
-
-    private AccountManager mAccountManager;
-    private Account mAccount;
+    private static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
+    public static final String REQUEST_LOCATION_PERMISSION_KEY = "requestLocationPermissionKey";
+    public static final String WEATHER_LAST_SYNC_TIME_KEY = "weatherLastSyncTimeKey";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,11 +38,15 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // set up account for syncing
-        mAccountManager = AccountManager.get(this);
-        mAccount = getAccount();
-        if (mAccount == null) {
-            mAccount = createAccount();
+
+        // check if requestPermissions needs to be called
+        if (getIntent().hasExtra(REQUEST_LOCATION_PERMISSION_KEY) &&
+                getIntent().getBooleanExtra(REQUEST_LOCATION_PERMISSION_KEY, false)) {
+            ActivityCompat.requestPermissions(
+                    MainActivity.this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE
+            );
         }
 
         //TODO - create & launch an async task that looks for weather data in database, and
@@ -50,26 +55,28 @@ public class MainActivity extends AppCompatActivity {
 
 
         // set up view pager & tab layout
-        ViewPager viewPager = (ViewPager) findViewById(R.id.view_pager);
-        viewPager.setAdapter(new TabPagerAdapter(getSupportFragmentManager()));
-        TabLayout tabLayout = (TabLayout) findViewById(R.id.tab_layout);
-        tabLayout.setupWithViewPager(viewPager);
+        ViewPager viewPager;
+        if ( (viewPager = (ViewPager) findViewById(R.id.view_pager)) != null ) {
+            viewPager.setAdapter(new MyFragmentPagerAdapter(getSupportFragmentManager()));
+        }
+        TabLayout tabLayout;
+        if ( (tabLayout = (TabLayout) findViewById(R.id.tab_layout)) != null ) {
+            tabLayout.setupWithViewPager(viewPager);
+        }
 
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                requestManualSync();
-
-                if (haveReadContactsPermission()) {
-                    readContacts();
-                } else {
-                    requestReadContactsPermission();
+        FloatingActionButton fab;
+        if ( (fab = (FloatingActionButton) findViewById(R.id.fab)) != null ) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (haveReadContactsPermission()) {
+                        readContacts();
+                    } else {
+                        requestReadContactsPermission();
+                    }
                 }
-            }
-        });
-
+            });
+        }
     }
 
     @Override
@@ -88,37 +95,6 @@ public class MainActivity extends AppCompatActivity {
                 return super.onOptionsItemSelected(item);
         }
         return true;
-    }
-
-    public Account createAccount() {
-        Account newAccount = new Account(
-                getString(R.string.account),
-                getString(R.string.account_type)
-        );
-
-        if (mAccountManager.addAccountExplicitly(newAccount, null, null)) {
-            Log.d(TAG, "createAccount: success");
-        } else {
-            Log.d(TAG, "createAccount: failed");
-        }
-
-        return newAccount;
-    }
-
-    private Account getAccount() {
-        // Return the first account of our account_type, or null if none
-        Account[] accounts = mAccountManager.getAccountsByType(getString(R.string.account_type));
-        if (accounts.length > 0) {
-            return accounts[0];
-        }
-        return null;
-    }
-
-    private void requestManualSync() {
-        Bundle settingsBundle = new Bundle();
-        settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-        ContentResolver.requestSync(mAccount, getString(R.string.authority), settingsBundle);
     }
 
     private boolean haveReadContactsPermission() {
@@ -149,13 +125,31 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == READ_CONTACTS_PERMISSION_REQUEST_CODE &&
-                grantResults.length > 0 &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            Snackbar.make(findViewById(R.id.main_activity_root_view), "Permission granted", Snackbar.LENGTH_SHORT).show();
-            readContacts();
-        } else {
-            Snackbar.make(findViewById(R.id.main_activity_root_view), "Permission denied", Snackbar.LENGTH_SHORT).show();
+
+        String snackbarMessage = null;
+
+        switch (requestCode) {
+            case READ_CONTACTS_PERMISSION_REQUEST_CODE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    snackbarMessage = "Permission to read contacts granted";
+                    readContacts();
+                } else {
+                    snackbarMessage = "Permission to read contacts denied";
+                }
+                break;
+            case ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    snackbarMessage = "Permission to use device location granted";
+                    //TODO - reload WeatherFragment
+                } else {
+                    snackbarMessage = "Permission to use device location denied";
+                }
+                break;
+        }
+
+        if (snackbarMessage != null) {
+            Snackbar.make(findViewById(android.R.id.content), snackbarMessage, Snackbar.LENGTH_SHORT)
+                    .show();
         }
     }
 }

@@ -16,7 +16,7 @@ import android.widget.EditText;
 import android.widget.Filter;
 import android.widget.TextView;
 
-import com.charlesdrews.dontforget.weather.WeatherHelper;
+import com.charlesdrews.dontforget.weather.retrofit.WeatherHelper;
 import com.charlesdrews.dontforget.weather.model.Location;
 
 import java.util.List;
