@@ -61,10 +61,14 @@ public class WeatherRecyclerAdapter
                 break;
             case WEATHER_HOURLY:
                 HourlyWeatherViewHolder hourlyHolder = (HourlyWeatherViewHolder) holder;
-                //hourlyHolder.title.setText("Hourly forecast");
-                WeatherDataHourly dataHourly = (WeatherDataHourly) data;
-                hourlyHolder.title.setText(dataHourly.getHourlyForecasts().get(0).getCondition());
-                //TODO - extend RealmBaseAdapter to make a list here
+
+                if (data instanceof WeatherDataHourly) {
+                    WeatherDataHourly dataHourly = (WeatherDataHourly) data;
+                    hourlyHolder.title.setText(dataHourly.getHourlyForecasts().get(0).getCondition());
+                } else {
+                    hourlyHolder.title.setText("Hourly forecast");
+                }
+                //TODO - extend RealmBaseAdapter to make a list here?
                 break;
             case WEATHER_DAILY:
                 DailyWeatherViewHolder dailyHolder = (DailyWeatherViewHolder) holder;

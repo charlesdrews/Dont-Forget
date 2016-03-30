@@ -22,6 +22,7 @@ import io.realm.Realm;
 import io.realm.RealmResults;
 
 /**
+ * Call WeatherUnderground API, save data in Realm db, notify content resolver
  * Created by charlie on 3/22/16.
  */
 public class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -50,9 +51,10 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             getAndSaveForecastData(query);
 
             // save sync time to shared preferences
+            String syncTimeKey = mContext.getString(R.string.weather_last_sync_time_key);
             PreferenceManager.getDefaultSharedPreferences(mContext)
                     .edit()
-                    .putLong(MainActivity.WEATHER_LAST_SYNC_TIME_KEY, System.currentTimeMillis())
+                    .putLong(syncTimeKey, System.currentTimeMillis())
                     .commit();
 
             mContentResolver.notifyChange(StubProvider.WEATHER_URI, null);

@@ -5,8 +5,6 @@ import android.Manifest;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.ContentResolver;
-import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
@@ -17,6 +15,7 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -27,12 +26,19 @@ import com.charlesdrews.dontforget.MainActivity;
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.sync.StubProvider;
 import com.charlesdrews.dontforget.sync.SyncAdapter;
+import com.charlesdrews.dontforget.weather.model.HourlyForecast;
+import com.charlesdrews.dontforget.weather.model.WeatherData;
+import com.charlesdrews.dontforget.weather.model.WeatherDataHourly;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
+import java.util.ArrayList;
+
+import io.realm.Realm;
+import io.realm.RealmResults;
 
 public class WeatherFragment extends Fragment implements
         GoogleApiClient.ConnectionCallbacks,
@@ -42,73 +48,62 @@ public class WeatherFragment extends Fragment implements
     private static final String TAG = WeatherFragment.class.getSimpleName();
     private static final long SYNC_THRESHOLD_IN_MINUTES = 15;
 
-    private Context mContext;
     private WeatherContentObserver mContentObserver;
     private AccountManager mAccountManager;
     private Account mAccount;
     private GoogleApiClient mGoogleApiClient;
-    private LocationRequest mLocationRequest;
-    private RecyclerView mRecycler;
+    private Realm mRealm;
+    private ArrayList<WeatherData> mData;
+    private WeatherRecyclerAdapter mAdapter;
 
-    public WeatherFragment() {
-        // Required empty public constructor
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        mContext = container.getContext();
-        View rootView = inflater.inflate(R.layout.fragment_weather, container, false);
-        mRecycler = (RecyclerView) rootView.findViewById(R.id.weather_recycler_view);
-        return rootView;
-    }
+    public WeatherFragment() {}
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-        // set up account for syncing
-        mAccountManager = AccountManager.get(mContext);
+        // set up account for syncing data
+        mAccountManager = AccountManager.get(getContext());
         mAccount = getAccount();
         if (mAccount == null) {
             mAccount = createAccount();
         }
 
-        /*
-        mRecycler.setLayoutManager(new LinearLayoutManager(getActivity()));
+        initData();
+    }
 
-        //TODO - populate ArrayList w/ actual data
-        ArrayList<WeatherData> data = new ArrayList<>(3);
-        data.add(0, new WeatherData()); // current weather
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        View rootView = inflater.inflate(R.layout.fragment_weather, container, false);
 
-        // get hourly forecast data from Realm db
-        Realm realm = Realm.getDefaultInstance();
-        //TODO - sort the results
-        RealmResults<HourlyForecast> hourlyForecasts = realm.where(HourlyForecast.class)
-                .findAll();
-        data.add(1, new WeatherDataHourly(1, hourlyForecasts));
+        RecyclerView recycler = (RecyclerView) rootView.findViewById(R.id.weather_recycler_view);
+        recycler.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        data.add(2, new WeatherData()); // daily weather
+        mAdapter = new WeatherRecyclerAdapter(getContext(), mData);
+        recycler.setAdapter(mAdapter);
 
-        WeatherRecyclerAdapter adapter = new WeatherRecyclerAdapter(getActivity(), data);
-        mRecycler.setAdapter(adapter);
-        */
+        return rootView;
     }
 
     //TODO - refresh data on pullDown gesture
-
 
     @Override
     public void onResume() {
         super.onResume();
 
+        if (mRealm.isClosed()) {
+            mRealm = Realm.getDefaultInstance();
+        }
+
+        // listen for data syncs
         mContentObserver = new WeatherContentObserver(new Handler());
-        mContext.getContentResolver().registerContentObserver(
+        getContext().getContentResolver().registerContentObserver(
                 Uri.parse(StubProvider.BASE_URI_STRING), true, mContentObserver);
 
         // get time of last weather data sync
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-        long lastSyncTime = prefs.getLong(MainActivity.WEATHER_LAST_SYNC_TIME_KEY, -1);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        long lastSyncTime = prefs.getLong(getString(R.string.weather_last_sync_time_key), -1);
 
         // if last sync was within the threshold, return now without a new sync
         if (lastSyncTime > 0 &&
@@ -119,7 +114,7 @@ public class WeatherFragment extends Fragment implements
         // otherwise, request a new sync - use device location or static location per user prefs
         boolean useDeviceLocation = prefs.getBoolean(getString(R.string.pref_key_weather_geo), false);
         if (useDeviceLocation) {
-            mGoogleApiClient = new GoogleApiClient.Builder(mContext)
+            mGoogleApiClient = new GoogleApiClient.Builder(getContext())
                     .addConnectionCallbacks(this)
                     .addOnConnectionFailedListener(this)
                     .addApi(LocationServices.API)
@@ -143,10 +138,13 @@ public class WeatherFragment extends Fragment implements
     @Override
     public void onPause() {
         super.onPause();
-        mContext.getContentResolver().unregisterContentObserver(mContentObserver);
-        if (mGoogleApiClient.isConnected()) {
+        getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+        if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
             mGoogleApiClient.disconnect();
+        }
+        if (!mRealm.isClosed()) {
+            mRealm.close();
         }
     }
 
@@ -155,13 +153,16 @@ public class WeatherFragment extends Fragment implements
         Log.d(TAG, "onConnected: connected to GoogleApiClient");
 
         // if permission not granted, launch MainActivity and tell it to call requestPermissions()
-        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
 
             Log.d(TAG, "onConnected: permission NOT granted - start MainActivity");
-            Intent intent = new Intent(mContext, MainActivity.class);
-            intent.putExtra(MainActivity.REQUEST_LOCATION_PERMISSION_KEY, true);
-            mContext.startActivity(intent);
+
+            ActivityCompat.requestPermissions(
+                    getActivity(),
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    MainActivity.ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE
+            );
             return;
         }
 
@@ -176,12 +177,12 @@ public class WeatherFragment extends Fragment implements
         // if location not yet available, set up a location request & trigger sync from listener
         } else {
             Log.d(TAG, "onConnected: last location was null; request location updates");
-            mLocationRequest = LocationRequest.create()
+            LocationRequest locationRequest = LocationRequest.create()
                     .setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY)
                     .setInterval(5 * 1000)         // 5 seconds, in milliseconds
-                    .setFastestInterval(1 * 1000);  // 1 second, in milliseconds
+                    .setFastestInterval(1 * 1000);
             LocationServices.FusedLocationApi
-                    .requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+                    .requestLocationUpdates(mGoogleApiClient, locationRequest, this);
         }
     }
 
@@ -200,7 +201,7 @@ public class WeatherFragment extends Fragment implements
         requestNewSync(getQueryStringFromLocation(location));
     }
 
-    public Account createAccount() {
+    private Account createAccount() {
         Account newAccount = new Account(
                 getString(R.string.account),
                 getString(R.string.account_type)
@@ -225,11 +226,36 @@ public class WeatherFragment extends Fragment implements
         return null;
     }
 
-    public String getQueryStringFromLocation(Location location) {
+    private void initData() {
+        if (mData == null) {
+            mData = new ArrayList<>(3);
+        } else {
+            mData.clear();
+        }
+
+        mRealm = Realm.getDefaultInstance();
+
+        //TODO - populate ArrayList w/ actual data
+        mData.add(0, new WeatherData()); // current weather
+
+        // get hourly forecast data from Realm db
+        RealmResults<HourlyForecast> hourlyForecasts =
+                mRealm.where(HourlyForecast.class).findAll();
+        if (hourlyForecasts != null && hourlyForecasts.size() > 0) {
+            //TODO - sort the results
+            mData.add(1, new WeatherDataHourly(1, hourlyForecasts));
+        } else {
+            mData.add(1, new WeatherData());
+        }
+
+        mData.add(2, new WeatherData()); // daily weather
+    }
+
+    private String getQueryStringFromLocation(Location location) {
         return location.getLatitude() + "," + location.getLongitude();
     }
 
-    public void requestNewSync(String locationQuery) {
+    private void requestNewSync(String locationQuery) {
         Bundle settingsBundle = new Bundle();
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
@@ -246,7 +272,9 @@ public class WeatherFragment extends Fragment implements
         public void onChange(boolean selfChange, Uri uri) {
             super.onChange(selfChange, uri);
             Log.d(TAG, "onChange: ContentObserver triggered");
-            //TODO - update views
+            //TODO - make this async
+            initData();
+            mAdapter.notifyDataSetChanged();
         }
     }
 }

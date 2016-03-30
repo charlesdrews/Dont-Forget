@@ -22,4 +22,6 @@
         <item>@string/weather_default_unit</item>
         <item>Metric</item>
     </string-array>
+
+    <string name="weather_last_sync_time_key">weather_last_sync_time_key</string>
 </resources>

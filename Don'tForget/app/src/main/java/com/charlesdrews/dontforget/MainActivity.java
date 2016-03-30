@@ -1,9 +1,6 @@
 package com.charlesdrews.dontforget;
 
 import android.Manifest;
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -11,7 +8,6 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -27,9 +23,7 @@ import com.charlesdrews.dontforget.settings.SettingsActivity;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int READ_CONTACTS_PERMISSION_REQUEST_CODE = 123;
-    private static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
-    public static final String REQUEST_LOCATION_PERMISSION_KEY = "requestLocationPermissionKey";
-    public static final String WEATHER_LAST_SYNC_TIME_KEY = "weatherLastSyncTimeKey";
+    public static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,22 +31,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-
-        // check if requestPermissions needs to be called
-        if (getIntent().hasExtra(REQUEST_LOCATION_PERMISSION_KEY) &&
-                getIntent().getBooleanExtra(REQUEST_LOCATION_PERMISSION_KEY, false)) {
-            ActivityCompat.requestPermissions(
-                    MainActivity.this,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                    ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE
-            );
-        }
-
-        //TODO - create & launch an async task that looks for weather data in database, and
-        //if none present request manual sync, otherwise load data from db into UI
-        //requestManualSync();
-
 
         // set up view pager & tab layout
         ViewPager viewPager;
