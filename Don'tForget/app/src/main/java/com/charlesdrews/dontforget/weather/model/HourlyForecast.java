@@ -6,13 +6,13 @@ import io.realm.RealmObject;
  * Created by charlie on 3/16/16.
  */
 public class HourlyForecast extends RealmObject {
-    private FctTime FCTTIME;
+    private Hour FCTTIME;
     private String condition, icon, icon_url;
     private int humidity, pop;
-    private Temperature temp, dewpoint, windchill, heatindex, feelslike;
+    private TempEngMetric temp, dewpoint, windchill, heatindex, feelslike;
     private Precipitation qpf, snow;
 
-    public FctTime getFCTTIME() {
+    public Hour getFCTTIME() {
         return FCTTIME;
     }
 
@@ -36,23 +36,23 @@ public class HourlyForecast extends RealmObject {
         return pop;
     }
 
-    public Temperature getTemp() {
+    public TempEngMetric getTemp() {
         return temp;
     }
 
-    public Temperature getDewpoint() {
+    public TempEngMetric getDewpoint() {
         return dewpoint;
     }
 
-    public Temperature getWindchill() {
+    public TempEngMetric getWindchill() {
         return windchill;
     }
 
-    public Temperature getHeatindex() {
+    public TempEngMetric getHeatindex() {
         return heatindex;
     }
 
-    public Temperature getFeelslike() {
+    public TempEngMetric getFeelslike() {
         return feelslike;
     }
 

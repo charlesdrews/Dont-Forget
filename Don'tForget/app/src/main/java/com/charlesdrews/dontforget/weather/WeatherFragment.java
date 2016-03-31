@@ -16,8 +16,6 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,9 +26,6 @@ import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.sync.AccountHelper;
 import com.charlesdrews.dontforget.sync.StubProvider;
 import com.charlesdrews.dontforget.sync.SyncAdapter;
-import com.charlesdrews.dontforget.weather.model.HourlyForecast;
-import com.charlesdrews.dontforget.weather.model.WeatherData;
-import com.charlesdrews.dontforget.weather.model.WeatherDataHourly;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -40,7 +35,6 @@ import com.google.android.gms.location.LocationServices;
 import java.util.ArrayList;
 
 import io.realm.Realm;
-import io.realm.RealmResults;
 
 public class WeatherFragment extends Fragment implements
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
@@ -53,8 +47,6 @@ public class WeatherFragment extends Fragment implements
     private Account mAccount;
     private GoogleApiClient mGoogleApiClient;
     private Realm mRealm;
-    private ArrayList<WeatherData> mData;
-    private WeatherRecyclerAdapter mAdapter;
     private SwipeRefreshLayout mSwipeRefreshLayout;
 
     public WeatherFragment() {}
@@ -82,12 +74,6 @@ public class WeatherFragment extends Fragment implements
         mSwipeRefreshLayout = (SwipeRefreshLayout) rootView
                 .findViewById(R.id.weather_swipe_refresh_layout);
         mSwipeRefreshLayout.setOnRefreshListener(this);
-
-        RecyclerView recycler = (RecyclerView) rootView.findViewById(R.id.weather_recycler_view);
-        recycler.setLayoutManager(new LinearLayoutManager(getContext()));
-
-        mAdapter = new WeatherRecyclerAdapter(getContext(), mData);
-        recycler.setAdapter(mAdapter);
 
         return rootView;
     }
@@ -201,28 +187,10 @@ public class WeatherFragment extends Fragment implements
 
     private void pullWeatherDataFromDb() {
         //TODO - make this async?
-        if (mData == null) {
-            mData = new ArrayList<>(3);
-        } else {
-            mData.clear();
-        }
 
         mRealm = Realm.getDefaultInstance();
 
-        //TODO - populate ArrayList w/ actual data
-        mData.add(0, new WeatherData()); // current weather
-
-        // get hourly forecast data from Realm db
-        RealmResults<HourlyForecast> hourlyForecasts =
-                mRealm.where(HourlyForecast.class).findAll();
-        if (hourlyForecasts != null && hourlyForecasts.size() > 0) {
-            //TODO - sort the results
-            mData.add(1, new WeatherDataHourly(1, hourlyForecasts));
-        } else {
-            mData.add(1, new WeatherData());
-        }
-
-        mData.add(2, new WeatherData()); // daily weather
+        //TODO - update views
 
         if (mSwipeRefreshLayout != null && mSwipeRefreshLayout.isRefreshing()) {
             mSwipeRefreshLayout.setRefreshing(false);
@@ -277,9 +245,7 @@ public class WeatherFragment extends Fragment implements
         public void onChange(boolean selfChange, Uri uri) {
             super.onChange(selfChange, uri);
             Log.d(TAG, "onChange: ContentObserver triggered");
-            //TODO - make this async?
             pullWeatherDataFromDb();
-            mAdapter.notifyDataSetChanged();
         }
     }
 }

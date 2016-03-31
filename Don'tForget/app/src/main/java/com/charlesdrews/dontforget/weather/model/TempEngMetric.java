@@ -5,7 +5,7 @@ import io.realm.RealmObject;
 /**
  * Created by charlie on 3/16/16.
  */
-public class Temperature extends RealmObject {
+public class TempEngMetric extends RealmObject {
     private int english, metric;
 
     public int getEnglish() {

@@ -1,7 +1,7 @@
 package com.charlesdrews.dontforget.weather.retrofit;
 
 import com.charlesdrews.dontforget.weather.model.HourlyForecast;
-import com.charlesdrews.dontforget.weather.model.HourlyForecastResponse;
+import com.charlesdrews.dontforget.weather.model.WeatherData;
 import com.charlesdrews.dontforget.weather.model.Location;
 import com.charlesdrews.dontforget.weather.model.LocationResponse;
 import com.google.gson.ExclusionStrategy;
@@ -35,8 +35,9 @@ public class WeatherHelper {
     private WeatherHelper() {}
 
     /**
-     * Retrieves a list of HourlyForecast objects from the WeatherUnderground API. This method
-     * must be called in a async task on a worker thread and NOT on the UI thread.
+     * Retrieves current conditions, hourly forecast, and 10-day forecast from the
+     * Weather Underground API. This method must be called from an async task or
+     * a worker thread and NOT on the UI thread.
      *
      * Formatting options for query string:
      * CA/San_Francisco	                    US state/city
@@ -49,18 +50,18 @@ public class WeatherHelper {
      * autoip.json?geo_ip=38.102.136.138    specific IP address location
      *
      * @param query - location query string
-     * @return List of HourlyForecast objects, or null if no response or error response
+     * @return WeatherData object
      */
-    public static List<HourlyForecast> getHourlyForecasts(String query) {
+    public static WeatherData getWeatherData(String query) {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(FORECAST_BASE_URL)
                 .addConverterFactory(getGsonConverterFactoryForRealm())
                 .build();
 
         WeatherService service = retrofit.create(WeatherService.class);
-        Call<HourlyForecastResponse> call = service.getHourly(query);
+        Call<WeatherData> call = service.getWeather(query);
 
-        Response<HourlyForecastResponse> response = null;
+        Response<WeatherData> response = null;
         try {
             response = call.execute();
         } catch (IOException e) {
@@ -68,7 +69,7 @@ public class WeatherHelper {
         }
 
         if (response != null && response.body() != null) {
-            return response.body().getHourlyForecasts();
+            return response.body();
         } else {
             return null;
         }
@@ -121,7 +122,7 @@ public class WeatherHelper {
     public static void main(String[] args) {
         // testing
         /*
-        List<HourlyForecast> forecasts = getHourlyForecasts("40.743043,-73.981797");
+        List<HourlyForecast> forecasts = getWeatherData("40.743043,-73.981797");
         if (forecasts != null) {
             for (HourlyForecast forecast : forecasts) {
                 System.out.println(forecast.getFCTTIME().getHour());

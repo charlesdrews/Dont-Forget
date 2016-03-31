@@ -5,20 +5,21 @@ import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.charlesdrews.dontforget.MainActivity;
 import com.charlesdrews.dontforget.R;
+import com.charlesdrews.dontforget.weather.model.CurrentConditions;
+import com.charlesdrews.dontforget.weather.model.WeatherData;
 import com.charlesdrews.dontforget.weather.retrofit.WeatherHelper;
 import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 
 import java.util.List;
 
 import io.realm.Realm;
+import io.realm.RealmObject;
 import io.realm.RealmResults;
 
 /**
@@ -70,20 +71,41 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         Log.d(TAG, "getAndSaveForecastData: making API call w/ query " + query);
-        List<HourlyForecast> newHourlyForecasts = WeatherHelper.getHourlyForecasts(query);
+        WeatherData weatherData = WeatherHelper.getWeatherData(query);
 
-        if (newHourlyForecasts != null && newHourlyForecasts.size() > 0) {
-            Log.d(TAG, "getAndSaveForecastData: API call yielded results");
-            Realm realm = Realm.getDefaultInstance();
+        if (weatherData == null) { return; }
+
+        Log.d(TAG, "getAndSaveForecastData: API call yielded results");
+        Realm realm = Realm.getDefaultInstance();
+
+        if (weatherData.getCurrent_observation() != null) {
+            Log.d(TAG, "getAndSaveForecastData: saving current conditions");
+            realm.beginTransaction();
+            realm.copyToRealm(weatherData.getCurrent_observation());
+            realm.commitTransaction();
+        }
+
+        if (weatherData.getHourly_forecast() != null
+                && weatherData.getHourly_forecast().size() > 0) {
             RealmResults<HourlyForecast> oldHourlyForecasts = realm.where(HourlyForecast.class).findAll();
 
+            Log.d(TAG, "getAndSaveForecastData: saving hourly forecast");
             realm.beginTransaction();
             oldHourlyForecasts.clear();
-            realm.copyToRealm(newHourlyForecasts);
+            realm.copyToRealm(weatherData.getHourly_forecast());
             realm.commitTransaction();
 
-            realm.close();
-            Log.d(TAG, "getAndSaveForecastData: results persisted to db");
         }
+
+        if (weatherData.getForecast() != null) {
+
+            Log.d(TAG, "getAndSaveForecastData: saving daily forecast");
+            realm.beginTransaction();
+            realm.copyToRealm(weatherData.getForecast());
+            realm.commitTransaction();
+        }
+
+        realm.close();
+        Log.d(TAG, "getAndSaveForecastData: results persisted to db");
     }
 }

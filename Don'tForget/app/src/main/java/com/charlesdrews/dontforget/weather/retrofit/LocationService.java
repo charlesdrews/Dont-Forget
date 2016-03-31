@@ -7,6 +7,8 @@ import retrofit2.http.GET;
 import retrofit2.http.Query;
 
 /**
+ * Interface for calling the Weather Underground Autocomplete API
+ *
  * Created by charlie on 3/29/16.
  */
 public interface LocationService {
