@@ -3,7 +3,6 @@ package com.charlesdrews.dontforget.weather;
 
 import android.Manifest;
 import android.accounts.Account;
-import android.accounts.AccountManager;
 import android.content.ContentResolver;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -26,6 +25,7 @@ import android.view.ViewGroup;
 
 import com.charlesdrews.dontforget.MainActivity;
 import com.charlesdrews.dontforget.R;
+import com.charlesdrews.dontforget.sync.AccountHelper;
 import com.charlesdrews.dontforget.sync.StubProvider;
 import com.charlesdrews.dontforget.sync.SyncAdapter;
 import com.charlesdrews.dontforget.weather.model.HourlyForecast;
@@ -50,7 +50,6 @@ public class WeatherFragment extends Fragment implements
     private static final long SYNC_THRESHOLD_IN_MINUTES = 15;
 
     private WeatherContentObserver mContentObserver;
-    private AccountManager mAccountManager;
     private Account mAccount;
     private GoogleApiClient mGoogleApiClient;
     private Realm mRealm;
@@ -64,12 +63,13 @@ public class WeatherFragment extends Fragment implements
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // set up account for syncing data
-        mAccountManager = AccountManager.get(getContext());
-        mAccount = getAccount();
-        if (mAccount == null) {
-            mAccount = createAccount();
-        }
+        mAccount = AccountHelper.getAccount(getContext());
+
+        mGoogleApiClient = new GoogleApiClient.Builder(getContext())
+                .addApi(LocationServices.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
 
         pullWeatherDataFromDb();
     }
@@ -92,13 +92,11 @@ public class WeatherFragment extends Fragment implements
         return rootView;
     }
 
-    //TODO - refresh data on pullDown gesture
-
     @Override
     public void onResume() {
         super.onResume();
 
-        if (mRealm.isClosed()) {
+        if (mRealm == null || mRealm.isClosed()) {
             mRealm = Realm.getDefaultInstance();
         }
 
@@ -121,12 +119,15 @@ public class WeatherFragment extends Fragment implements
     @Override
     public void onPause() {
         super.onPause();
+
         getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+
         if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
             mGoogleApiClient.disconnect();
         }
-        if (!mRealm.isClosed()) {
+
+        if (mRealm != null && !mRealm.isClosed()) {
             mRealm.close();
         }
     }
@@ -140,11 +141,10 @@ public class WeatherFragment extends Fragment implements
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected: connected to GoogleApiClient");
 
-        // if permission not granted, launch MainActivity and tell it to call requestPermissions()
         if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
 
-            Log.d(TAG, "onConnected: permission NOT granted - start MainActivity");
+            Log.d(TAG, "onConnected: permission NOT granted; starting request for permission");
 
             ActivityCompat.requestPermissions(
                     getActivity(),
@@ -153,65 +153,50 @@ public class WeatherFragment extends Fragment implements
             );
             return;
         }
-
-        // otherwise, get last known location & call weather API
-        Log.d(TAG, "onConnected: permission granted, getting last location");
-        Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        Log.d(TAG, "onConnected: permission granted");
 
         // if location is available, request new sync using location data
+        Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (lastLocation != null) {
             Log.d(TAG, "onConnected: last location retrieved successfully");
             requestWeatherSync(getQueryStringFromLocation(lastLocation));
-        // if location not yet available, set up a location request & trigger sync from listener
         } else {
-            Log.d(TAG, "onConnected: last location was null; request location updates");
+        // if location not yet available, set up a location request & trigger sync from listener
+            Log.d(TAG, "onConnected: last location not available; launching a location request");
             LocationRequest locationRequest = LocationRequest.create()
                     .setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY)
-                    .setInterval(5 * 1000)         // 5 seconds, in milliseconds
-                    .setFastestInterval(1 * 1000);
+                    .setInterval(0)
+                    .setFastestInterval(0);
             LocationServices.FusedLocationApi
                     .requestLocationUpdates(mGoogleApiClient, locationRequest, this);
+            // requestWeatherSync() is called from onLocationChanged
         }
+
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-        //TODO
+        Snackbar.make(
+                getActivity().findViewById(android.R.id.content),
+                "Unable to get device location",
+                Snackbar.LENGTH_SHORT)
+                .show();
     }
 
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
-        //TODO
+        Snackbar.make(
+                getActivity().findViewById(android.R.id.content),
+                "Unable to get device location",
+                Snackbar.LENGTH_SHORT)
+                .show();
     }
 
     @Override
     public void onLocationChanged(Location location) {
+        Log.d(TAG, "onLocationChanged: location rec'd");
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
         requestWeatherSync(getQueryStringFromLocation(location));
-    }
-
-    private Account createAccount() {
-        Account newAccount = new Account(
-                getString(R.string.account),
-                getString(R.string.account_type)
-        );
-
-        if (mAccountManager.addAccountExplicitly(newAccount, null, null)) {
-            Log.d(TAG, "createAccount: success");
-        } else {
-            Log.d(TAG, "createAccount: failed");
-            //TODO - try a second time?
-        }
-
-        return newAccount;
-    }
-
-    private Account getAccount() {
-        // Return the first account of type account_type, or null if none
-        Account[] accounts = mAccountManager.getAccountsByType(getString(R.string.account_type));
-        if (accounts.length > 0) {
-            return accounts[0];
-        }
-        return null;
     }
 
     private void pullWeatherDataFromDb() {
@@ -250,13 +235,14 @@ public class WeatherFragment extends Fragment implements
         boolean useDeviceLocation = prefs.getBoolean(getString(R.string.pref_key_weather_geo), false);
 
         if (useDeviceLocation) {
-            mGoogleApiClient = new GoogleApiClient.Builder(getContext())
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
-            mGoogleApiClient.connect(); // sync triggered from onConnected()
+            if (mGoogleApiClient.isConnected()) {
+                // can't call connect() w/o disconnecting first, so call callback manually
+                onConnected(null); // onConnected() calls requestWeatherSync()
+            } else {
+                mGoogleApiClient.connect();
+            }
         } else {
+            // if user disabled geolocation in preferences, use static location, if set
             String staticLocation = prefs
                     .getString(getString(R.string.pref_key_weather_static_location), null);
 
