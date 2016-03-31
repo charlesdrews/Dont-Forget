@@ -13,8 +13,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -41,9 +43,8 @@ import io.realm.Realm;
 import io.realm.RealmResults;
 
 public class WeatherFragment extends Fragment implements
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
-        LocationListener {
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
+        LocationListener, SwipeRefreshLayout.OnRefreshListener {
 
     private static final String TAG = WeatherFragment.class.getSimpleName();
     private static final long SYNC_THRESHOLD_IN_MINUTES = 15;
@@ -55,6 +56,7 @@ public class WeatherFragment extends Fragment implements
     private Realm mRealm;
     private ArrayList<WeatherData> mData;
     private WeatherRecyclerAdapter mAdapter;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
 
     public WeatherFragment() {}
 
@@ -69,13 +71,17 @@ public class WeatherFragment extends Fragment implements
             mAccount = createAccount();
         }
 
-        initData();
+        pullWeatherDataFromDb();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_weather, container, false);
+
+        mSwipeRefreshLayout = (SwipeRefreshLayout) rootView
+                .findViewById(R.id.weather_swipe_refresh_layout);
+        mSwipeRefreshLayout.setOnRefreshListener(this);
 
         RecyclerView recycler = (RecyclerView) rootView.findViewById(R.id.weather_recycler_view);
         recycler.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -105,33 +111,10 @@ public class WeatherFragment extends Fragment implements
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         long lastSyncTime = prefs.getLong(getString(R.string.weather_last_sync_time_key), -1);
 
-        // if last sync was within the threshold, return now without a new sync
-        if (lastSyncTime > 0 &&
-                System.currentTimeMillis() - lastSyncTime < SYNC_THRESHOLD_IN_MINUTES * 1000) {
-            return;
-        }
-
-        // otherwise, request a new sync - use device location or static location per user prefs
-        boolean useDeviceLocation = prefs.getBoolean(getString(R.string.pref_key_weather_geo), false);
-        if (useDeviceLocation) {
-            mGoogleApiClient = new GoogleApiClient.Builder(getContext())
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
-            mGoogleApiClient.connect(); // sync triggered from onConnected()
-        } else {
-            String staticLocation = prefs
-                    .getString(getString(R.string.pref_key_weather_static_location), null);
-
-            if (staticLocation == null || staticLocation.isEmpty() ||
-                    staticLocation.equals(getString(R.string.weather_static_location_default))) {
-                //TODO - notify use to either enable geolocation or enter static location
-                //redirect to Settings activity???
-                return;
-            }
-
-            requestNewSync(staticLocation);
+        // if no last sync, or sync was not within threshold, initiate new sync
+        if (lastSyncTime == -1 ||
+                System.currentTimeMillis() - lastSyncTime > SYNC_THRESHOLD_IN_MINUTES * 1000) {
+            initiateWeatherSync();
         }
     }
 
@@ -146,6 +129,11 @@ public class WeatherFragment extends Fragment implements
         if (!mRealm.isClosed()) {
             mRealm.close();
         }
+    }
+
+    @Override
+    public void onRefresh() {
+        initiateWeatherSync();
     }
 
     @Override
@@ -173,7 +161,7 @@ public class WeatherFragment extends Fragment implements
         // if location is available, request new sync using location data
         if (lastLocation != null) {
             Log.d(TAG, "onConnected: last location retrieved successfully");
-            requestNewSync(getQueryStringFromLocation(lastLocation));
+            requestWeatherSync(getQueryStringFromLocation(lastLocation));
         // if location not yet available, set up a location request & trigger sync from listener
         } else {
             Log.d(TAG, "onConnected: last location was null; request location updates");
@@ -198,7 +186,7 @@ public class WeatherFragment extends Fragment implements
 
     @Override
     public void onLocationChanged(Location location) {
-        requestNewSync(getQueryStringFromLocation(location));
+        requestWeatherSync(getQueryStringFromLocation(location));
     }
 
     private Account createAccount() {
@@ -226,7 +214,8 @@ public class WeatherFragment extends Fragment implements
         return null;
     }
 
-    private void initData() {
+    private void pullWeatherDataFromDb() {
+        //TODO - make this async?
         if (mData == null) {
             mData = new ArrayList<>(3);
         } else {
@@ -249,13 +238,43 @@ public class WeatherFragment extends Fragment implements
         }
 
         mData.add(2, new WeatherData()); // daily weather
+
+        if (mSwipeRefreshLayout != null && mSwipeRefreshLayout.isRefreshing()) {
+            mSwipeRefreshLayout.setRefreshing(false);
+        }
+    }
+
+    private void initiateWeatherSync() {
+        // use device location or static location per user prefs
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        boolean useDeviceLocation = prefs.getBoolean(getString(R.string.pref_key_weather_geo), false);
+
+        if (useDeviceLocation) {
+            mGoogleApiClient = new GoogleApiClient.Builder(getContext())
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+            mGoogleApiClient.connect(); // sync triggered from onConnected()
+        } else {
+            String staticLocation = prefs
+                    .getString(getString(R.string.pref_key_weather_static_location), null);
+
+            if (staticLocation == null || staticLocation.isEmpty() ||
+                    staticLocation.equals(getString(R.string.weather_static_location_default))) {
+                //TODO - notify use to either enable geolocation or enter static location
+                //redirect to Settings activity???
+                return;
+            }
+            requestWeatherSync(staticLocation);
+        }
     }
 
     private String getQueryStringFromLocation(Location location) {
         return location.getLatitude() + "," + location.getLongitude();
     }
 
-    private void requestNewSync(String locationQuery) {
+    private void requestWeatherSync(String locationQuery) {
         Bundle settingsBundle = new Bundle();
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
@@ -272,8 +291,8 @@ public class WeatherFragment extends Fragment implements
         public void onChange(boolean selfChange, Uri uri) {
             super.onChange(selfChange, uri);
             Log.d(TAG, "onChange: ContentObserver triggered");
-            //TODO - make this async
-            initData();
+            //TODO - make this async?
+            pullWeatherDataFromDb();
             mAdapter.notifyDataSetChanged();
         }
     }
