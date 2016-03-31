@@ -16,6 +16,7 @@ import android.widget.EditText;
 import android.widget.Filter;
 import android.widget.TextView;
 
+import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.weather.retrofit.WeatherHelper;
 import com.charlesdrews.dontforget.weather.model.Location;
 
@@ -39,18 +40,6 @@ public class WeatherLocationPreference extends EditTextPreference {
     protected void onBindDialogView(View view) {
         super.onBindDialogView(view);
 
-        /*
-        EditText editText = mEditText;
-        editText.setText(getText());
-
-        ViewParent oldParent = editText.getParent();
-        if(oldParent != view) {
-            if (oldParent != null) {
-                ((ViewGroup) oldParent).removeView(editText);
-            }
-            onAddEditTextToDialogView(view, editText);
-        }
-        */
         // save params from existing EditText, then remove it
         EditText editText = (EditText) view.findViewById(android.R.id.edit);
         ViewGroup.LayoutParams params = editText.getLayoutParams();
@@ -141,8 +130,14 @@ public class WeatherLocationPreference extends EditTextPreference {
     public class InitAdapterAsync extends AsyncTask<String, Void, Boolean> {
         @Override
         protected Boolean doInBackground(String... params) {
-            Log.d(TAG, "doInBackground: begin search for init");
-            mSuggestions = WeatherHelper.getLocations(params[0]);
+            Log.d(TAG, "doInBackground: begin search for init of autocomplete");
+            if (params != null && params.length > 0 &&
+                    !params[0].equals(getContext()
+                            .getString(R.string.weather_static_location_default))) {
+                mSuggestions = WeatherHelper.getLocations(params[0]);
+            } else {
+                mSuggestions = WeatherHelper.getLocations("");
+            }
             return (mSuggestions != null && mSuggestions.size() > 0);
         }
 
@@ -151,7 +146,6 @@ public class WeatherLocationPreference extends EditTextPreference {
             super.onPostExecute(aBoolean);
             if (aBoolean) {
                 Log.d(TAG, "onPostExecute: results rec'd for init");
-                //mEditText = new AutoCompleteTextView(mContext);
 
                 mAdapter = new WeatherLocationAdapter(getContext(), mSuggestions);
                 mEditText.setAdapter(mAdapter);
