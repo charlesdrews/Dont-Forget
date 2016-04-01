@@ -1,5 +1,8 @@
 package com.charlesdrews.dontforget.weather.model;
 
+import java.util.Calendar;
+import java.util.Date;
+
 import io.realm.RealmObject;
 
 /**
@@ -10,7 +13,7 @@ import io.realm.RealmObject;
  */
 public class HourlyForecastRealm extends RealmObject {
     // date & time
-    private int year, month, dayOfMonth, hour, minute;
+    private Date dateTime;
     boolean isDst;
     private String monthName, monthAbbrev, weekdayName, weekdayAbbrev, ampm;
 
@@ -20,12 +23,20 @@ public class HourlyForecastRealm extends RealmObject {
     private int tempFahr, tempCel, windchillFahr, windChillCel, heatIndexFahr, headIndexCel;
     private double precipInches, precipMMs, snowInches, snowCMs;
 
-    public HourlyForecastRealm(HourlyForecast hourlyForecast) {
-        this.year = hourlyForecast.getFCTTIME().getYear();
-        this.month = hourlyForecast.getFCTTIME().getMon();
-        this.dayOfMonth = hourlyForecast.getFCTTIME().getMday();
-        this.hour = hourlyForecast.getFCTTIME().getHour();
-        this.minute = hourlyForecast.getFCTTIME().getMin();
+    public HourlyForecastRealm() {}
+
+    public void setValues(HourlyForecast hourlyForecast) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.clear();
+        calendar.set(
+                hourlyForecast.getFCTTIME().getYear(),
+                hourlyForecast.getFCTTIME().getMon() - 1, // month is 0-based
+                hourlyForecast.getFCTTIME().getMday(),
+                hourlyForecast.getFCTTIME().getHour(),
+                hourlyForecast.getFCTTIME().getMin()
+        );
+        this.dateTime = calendar.getTime();
+
         this.isDst = hourlyForecast.getFCTTIME().getIsdst() == 1;
         this.monthName = hourlyForecast.getFCTTIME().getMonth_name();
         this.monthAbbrev = hourlyForecast.getFCTTIME().getMonth_name_abbrev();
@@ -51,24 +62,8 @@ public class HourlyForecastRealm extends RealmObject {
         this.snowCMs = hourlyForecast.getSnow().getMetric();
     }
 
-    public int getYear() {
-        return year;
-    }
-
-    public int getMonth() {
-        return month;
-    }
-
-    public int getDayOfMonth() {
-        return dayOfMonth;
-    }
-
-    public int getHour() {
-        return hour;
-    }
-
-    public int getMinute() {
-        return minute;
+    public Date getDateTime() {
+        return dateTime;
     }
 
     public boolean isDst() {

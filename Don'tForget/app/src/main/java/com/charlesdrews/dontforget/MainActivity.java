@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
@@ -31,6 +32,9 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        // load default preferences if first time running app
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+
         // set up view pager & tab layout
         ViewPager viewPager;
         if ( (viewPager = (ViewPager) findViewById(R.id.view_pager)) != null ) {
@@ -54,12 +58,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
     }
 
     @Override
@@ -117,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
             case ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     snackbarMessage = "Permission to use device location granted";
-                    //TODO - reload WeatherFragment
+                    //TODO - reload WeatherFragment?
                 } else {
                     snackbarMessage = "Permission to use device location denied";
                 }

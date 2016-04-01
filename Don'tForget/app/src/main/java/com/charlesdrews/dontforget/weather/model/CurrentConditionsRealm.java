@@ -16,7 +16,9 @@ public class CurrentConditionsRealm extends RealmObject {
     private String currConditionDesc, relativeHumidity, iconUrl;
     private double tempFahr, tempCel, heatIndexFahr, heatIndexCel, windchillFahr, windchillCel;
 
-    public CurrentConditionsRealm(CurrentConditions currentConditions) {
+    public CurrentConditionsRealm() {}
+
+    public void setValues(CurrentConditions currentConditions) {
         this.fullName = currentConditions.getDisplay_location().getFull();
         this.city = currentConditions.getDisplay_location().getCity();
         this.stateAbbrev = currentConditions.getDisplay_location().getState();
@@ -28,12 +30,19 @@ public class CurrentConditionsRealm extends RealmObject {
         this.relativeHumidity = currentConditions.getRelative_humidity();
         this.iconUrl = currentConditions.getIcon_url();
 
-        this.tempFahr = currentConditions.getTemp_f();
-        this.tempCel = currentConditions.getTemp_c();
-        this.heatIndexFahr = currentConditions.getHeat_index_f();
-        this.heatIndexCel = currentConditions.getHeat_index_c();
-        this.windchillFahr = currentConditions.getWindchill_f();
-        this.windchillCel = currentConditions.getWindchill_c();
+        this.tempFahr = parseDoubleOrNA(currentConditions.getTemp_f());
+        this.tempCel = parseDoubleOrNA(currentConditions.getTemp_c());
+        this.heatIndexFahr = parseDoubleOrNA(currentConditions.getHeat_index_f());
+        this.heatIndexCel = parseDoubleOrNA(currentConditions.getHeat_index_c());
+        this.windchillFahr = parseDoubleOrNA(currentConditions.getWindchill_f());
+        this.windchillCel = parseDoubleOrNA(currentConditions.getWindchill_c());
+    }
+
+    private double parseDoubleOrNA(String doublOrNA) {
+        if (doublOrNA.equals("NA")) {
+            return -99999.0;
+        }
+        return Double.parseDouble(doublOrNA);
     }
 
     public String getFullName() {

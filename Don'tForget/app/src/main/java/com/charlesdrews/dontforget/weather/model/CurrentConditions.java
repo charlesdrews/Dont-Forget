@@ -6,7 +6,7 @@ package com.charlesdrews.dontforget.weather.model;
 public class CurrentConditions {
     private DisplayLocation display_location;
     private String weather, relative_humidity, icon_url;
-    private double temp_f, temp_c, heat_index_f, heat_index_c, windchill_f, windchill_c;
+    private String temp_f, temp_c, heat_index_f, heat_index_c, windchill_f, windchill_c;
 
     public DisplayLocation getDisplay_location() {
         return display_location;
@@ -24,27 +24,27 @@ public class CurrentConditions {
         return icon_url;
     }
 
-    public double getTemp_f() {
+    public String getTemp_f() {
         return temp_f;
     }
 
-    public double getTemp_c() {
+    public String getTemp_c() {
         return temp_c;
     }
 
-    public double getHeat_index_f() {
+    public String getHeat_index_f() {
         return heat_index_f;
     }
 
-    public double getHeat_index_c() {
+    public String getHeat_index_c() {
         return heat_index_c;
     }
 
-    public double getWindchill_f() {
+    public String getWindchill_f() {
         return windchill_f;
     }
 
-    public double getWindchill_c() {
+    public String getWindchill_c() {
         return windchill_c;
     }
 }

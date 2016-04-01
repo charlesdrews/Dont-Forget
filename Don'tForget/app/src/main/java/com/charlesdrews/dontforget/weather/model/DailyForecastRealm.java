@@ -1,5 +1,8 @@
 package com.charlesdrews.dontforget.weather.model;
 
+import java.util.Calendar;
+import java.util.Date;
+
 import io.realm.RealmObject;
 
 /**
@@ -10,7 +13,7 @@ import io.realm.RealmObject;
  */
 public class DailyForecastRealm extends RealmObject {
     // date
-    private int year, month, dayOfMonth;
+    private Date date;
     private String monthName, monthAbbrev, weekdayName, weekdayAbbrev;
 
     // conditions
@@ -19,10 +22,18 @@ public class DailyForecastRealm extends RealmObject {
     private int probOfPrecip, avgHumidity, precipMMs;
     private double precipInches, snowInches, snowCMs;
 
-    public DailyForecastRealm(ForecastDay forecastDay) {
-        this.year = forecastDay.getDate().getYear();
-        this.month = forecastDay.getDate().getMonth();
-        this.dayOfMonth = forecastDay.getDate().getDay();
+    public DailyForecastRealm() {}
+
+    public void setValues(ForecastDay forecastDay) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.clear();
+        calendar.set(
+                forecastDay.getDate().getYear(),
+                forecastDay.getDate().getMonth() - 1, // month is 0-based
+                forecastDay.getDate().getDay()
+        );
+        this.date = calendar.getTime();
+
         this.monthName = forecastDay.getDate().getMonthname();
         this.monthAbbrev = forecastDay.getDate().getMonthname_short();
         this.weekdayName = forecastDay.getDate().getWeekday();
@@ -45,16 +56,8 @@ public class DailyForecastRealm extends RealmObject {
         this.snowCMs = forecastDay.getSnow_allday().getCm();
     }
 
-    public int getYear() {
-        return year;
-    }
-
-    public int getMonth() {
-        return month;
-    }
-
-    public int getDayOfMonth() {
-        return dayOfMonth;
+    public Date getDate() {
+        return date;
     }
 
     public String getMonthName() {

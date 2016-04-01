@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.realm.Realm;
+import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 
 /**
@@ -75,7 +76,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         Log.d(TAG, "getAndSaveForecastData: making API call w/ query " + query);
-        WeatherResponse weatherResponse = WeatherHelper.getWeatherData(query);
+        final WeatherResponse weatherResponse = WeatherHelper.getWeatherData(query);
 
         if (weatherResponse == null) {
             Log.d(TAG, "getAndSaveForecastData: no data rec'd from API");
@@ -83,33 +84,43 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         Log.d(TAG, "getAndSaveForecastData: API call yielded results");
-        Realm realm = Realm.getDefaultInstance();
+        Realm realm = Realm.getInstance(new RealmConfiguration.Builder(getContext()).build());
 
-        realm.beginTransaction();
-        realm.copyToRealm(new CurrentConditionsRealm(weatherResponse.getCurrent_observation()));
-        realm.commitTransaction();
-        Log.d(TAG, "getAndSaveForecastData: current conditions saved");
+        //TODO - delete old entries from Realm
 
-        List<HourlyForecast> hourlyForecasts = weatherResponse.getHourly_forecast();
-        List<HourlyForecastRealm> hourlyForecastRealms = new ArrayList<>(hourlyForecasts.size());
-        for (HourlyForecast forecast : hourlyForecasts) {
-            hourlyForecastRealms.add(new HourlyForecastRealm(forecast));
-        }
-        realm.beginTransaction();
-        realm.copyToRealm(hourlyForecastRealms);
-        realm.commitTransaction();
-        Log.d(TAG, "getAndSaveForecastData: hourly forecasts saved");
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                CurrentConditionsRealm current = realm.createObject(CurrentConditionsRealm.class);
+                current.setValues(weatherResponse.getCurrent_observation());
+                Log.d(TAG, "getAndSaveForecastData: current conditions saved");
+            }
+        });
 
-        List<ForecastDay> forecastDays = weatherResponse.getForecast()
+        final List<HourlyForecast> hourlyForecasts = weatherResponse.getHourly_forecast();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                for (HourlyForecast forecast : hourlyForecasts) {
+                    HourlyForecastRealm hourly = realm.createObject(HourlyForecastRealm.class);
+                    hourly.setValues(forecast);
+                }
+                Log.d(TAG, "getAndSaveForecastData: hourly forecasts saved");
+            }
+        });
+
+        final List<ForecastDay> forecastDays = weatherResponse.getForecast()
                 .getSimpleforecast().getForecastday();
-        List<DailyForecastRealm> dailyForecastRealms = new ArrayList<>(forecastDays.size());
-        for (ForecastDay forecast : forecastDays) {
-            dailyForecastRealms.add(new DailyForecastRealm(forecast));
-        }
-        realm.beginTransaction();
-        realm.copyToRealm(dailyForecastRealms);
-        realm.commitTransaction();
-        Log.d(TAG, "getAndSaveForecastData: daily forecasts saved");
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                for (ForecastDay forecast : forecastDays) {
+                    DailyForecastRealm daily = realm.createObject(DailyForecastRealm.class);
+                    daily.setValues(forecast);
+                }
+                Log.d(TAG, "getAndSaveForecastData: daily forecasts saved");
+            }
+        });
 
         realm.close();
         Log.d(TAG, "getAndSaveForecastData: results persisted to db");
