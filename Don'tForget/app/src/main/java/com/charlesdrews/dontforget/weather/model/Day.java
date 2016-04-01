@@ -1,12 +1,11 @@
 package com.charlesdrews.dontforget.weather.model;
 
-import io.realm.RealmObject;
-
 /**
  * Created by charlie on 3/31/16.
  */
-public class Day extends RealmObject {
-    private int year, month, day, monthname, monthname_short, weekday_short, weekday;
+public class Day {
+    private int year, month, day;
+    private String monthname, monthname_short, weekday_short, weekday;
 
     public int getYear() {
         return year;
@@ -20,19 +19,19 @@ public class Day extends RealmObject {
         return day;
     }
 
-    public int getMonthname() {
+    public String getMonthname() {
         return monthname;
     }
 
-    public int getMonthname_short() {
+    public String getMonthname_short() {
         return monthname_short;
     }
 
-    public int getWeekday_short() {
+    public String getWeekday_short() {
         return weekday_short;
     }
 
-    public int getWeekday() {
+    public String getWeekday() {
         return weekday;
     }
 }

@@ -1,6 +1,6 @@
 package com.charlesdrews.dontforget.weather.retrofit;
 
-import com.charlesdrews.dontforget.weather.model.WeatherData;
+import com.charlesdrews.dontforget.weather.model.WeatherResponse;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
@@ -14,5 +14,5 @@ import retrofit2.http.Path;
  */
 public interface WeatherService {
     @GET("conditions/hourly/forecast10day/q/{query}.json")
-    Call<WeatherData> getWeather(@Path("query") String query);
+    Call<WeatherResponse> getWeather(@Path("query") String query);
 }

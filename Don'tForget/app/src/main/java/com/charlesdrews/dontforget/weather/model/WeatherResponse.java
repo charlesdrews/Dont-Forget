@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Created by charlie on 3/16/16.
  */
-public class WeatherData {
+public class WeatherResponse {
     private CurrentConditions current_observation;
     private List<HourlyForecast> hourly_forecast;
     private DailyForecast forecast;

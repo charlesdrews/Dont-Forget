@@ -1,7 +1,6 @@
 package com.charlesdrews.dontforget.weather.retrofit;
 
-import com.charlesdrews.dontforget.weather.model.HourlyForecast;
-import com.charlesdrews.dontforget.weather.model.WeatherData;
+import com.charlesdrews.dontforget.weather.model.WeatherResponse;
 import com.charlesdrews.dontforget.weather.model.Location;
 import com.charlesdrews.dontforget.weather.model.LocationResponse;
 import com.google.gson.ExclusionStrategy;
@@ -50,18 +49,18 @@ public class WeatherHelper {
      * autoip.json?geo_ip=38.102.136.138    specific IP address location
      *
      * @param query - location query string
-     * @return WeatherData object
+     * @return WeatherResponse object
      */
-    public static WeatherData getWeatherData(String query) {
+    public static WeatherResponse getWeatherData(String query) {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(FORECAST_BASE_URL)
                 .addConverterFactory(getGsonConverterFactoryForRealm())
                 .build();
 
         WeatherService service = retrofit.create(WeatherService.class);
-        Call<WeatherData> call = service.getWeather(query);
+        Call<WeatherResponse> call = service.getWeather(query);
 
-        Response<WeatherData> response = null;
+        Response<WeatherResponse> response = null;
         try {
             response = call.execute();
         } catch (IOException e) {

@@ -1,11 +1,9 @@
 package com.charlesdrews.dontforget.weather.model;
 
-import io.realm.RealmObject;
-
 /**
  * Created by charlie on 3/31/16.
  */
-public class CurrentConditions extends RealmObject {
+public class CurrentConditions {
     private DisplayLocation display_location;
     private String weather, relative_humidity, icon_url;
     private double temp_f, temp_c, heat_index_f, heat_index_c, windchill_f, windchill_c;

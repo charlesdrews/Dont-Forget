@@ -1,15 +1,15 @@
 package com.charlesdrews.dontforget.weather.model;
 
-import io.realm.RealmObject;
-
 /**
  * Created by charlie on 3/31/16.
  */
-public class ForecastDay extends RealmObject {
+public class ForecastDay {
     private Day date;
     private TempFahrCel high, low;
     private String conditions, icon_url;
     private int pop, avehumidity;
+    private Qpf qpf_allday;
+    private Snow snow_allday;
 
     public Day getDate() {
         return date;
@@ -37,5 +37,13 @@ public class ForecastDay extends RealmObject {
 
     public int getAvehumidity() {
         return avehumidity;
+    }
+
+    public Qpf getQpf_allday() {
+        return qpf_allday;
+    }
+
+    public Snow getSnow_allday() {
+        return snow_allday;
     }
 }
