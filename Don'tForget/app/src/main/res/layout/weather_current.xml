@@ -60,8 +60,8 @@
                     android:id="@+id/current_icon"
                     android:layout_gravity="center_horizontal"
                     android:layout_marginBottom="5dp"
-                    android:layout_width="50dp"
-                    android:layout_height="50dp" />
+                    android:layout_width="@dimen/weather_current_icon_size"
+                    android:layout_height="@dimen/weather_current_icon_size" />
 
                 <TextView
                     android:id="@+id/current_condition"
@@ -77,7 +77,7 @@
 
             <TextView
                 android:id="@+id/current_temp"
-                android:textSize="90sp"
+                android:textSize="@dimen/weather_current_temp_size"
                 android:layout_gravity="center_vertical"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />

@@ -86,8 +86,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         Log.d(TAG, "getAndSaveForecastData: API call yielded results");
         Realm realm = Realm.getInstance(new RealmConfiguration.Builder(getContext()).build());
 
-        //TODO - delete old entries from Realm
-
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {

@@ -117,24 +117,4 @@ public class WeatherHelper {
 
         return GsonConverterFactory.create(gson);
     }
-
-    public static void main(String[] args) {
-        // testing
-        /*
-        List<HourlyForecast> forecasts = getWeatherData("40.743043,-73.981797");
-        if (forecasts != null) {
-            for (HourlyForecast forecast : forecasts) {
-                System.out.println(forecast.getFCTTIME().getHour());
-                System.out.println(forecast.getTemp().getEnglish());
-                System.out.println();
-            }
-        }
-        */
-        List<Location> locations = getLocations("New York");
-        if (locations != null) {
-            for (Location location : locations) {
-                System.out.println(location.getName());
-            }
-        }
-    }
 }
