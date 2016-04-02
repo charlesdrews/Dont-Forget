@@ -4,6 +4,8 @@ package com.charlesdrews.dontforget.weather;
 import android.Manifest;
 import android.accounts.Account;
 import android.content.ContentResolver;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
@@ -16,13 +18,21 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AlertDialog;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.RotateAnimation;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.charlesdrews.dontforget.MainActivity;
 import com.charlesdrews.dontforget.R;
+import com.charlesdrews.dontforget.settings.SettingsActivity;
 import com.charlesdrews.dontforget.sync.AccountHelper;
 import com.charlesdrews.dontforget.sync.StubProvider;
 import com.charlesdrews.dontforget.sync.SyncAdapter;
@@ -34,6 +44,12 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.squareup.picasso.Picasso;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 
 import io.realm.Realm;
 import io.realm.RealmResults;
@@ -44,12 +60,14 @@ public class WeatherFragment extends Fragment implements
 
     private static final String TAG = WeatherFragment.class.getSimpleName();
     private static final long SYNC_THRESHOLD_IN_MINUTES = 15;
+    private static final long SYNC_THRESHOLD_IN_MILLIS = SYNC_THRESHOLD_IN_MINUTES * 60 * 1000;
 
     private SharedPreferences mPreferences;
     private WeatherContentObserver mContentObserver;
     private Account mAccount;
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
+    private View mRootView;
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private Realm mRealm;
     private CurrentConditionsRealm mCurrentConditions;
@@ -82,12 +100,12 @@ public class WeatherFragment extends Fragment implements
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_weather, container, false);
+        mRootView = inflater.inflate(R.layout.fragment_weather, container, false);
 
-        mSwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.weather_swipe_refresh_layout);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) mRootView.findViewById(R.id.weather_swipe_refresh_layout);
         mSwipeRefreshLayout.setOnRefreshListener(this);
 
-        return rootView;
+        return mRootView;
     }
 
     @Override
@@ -101,6 +119,7 @@ public class WeatherFragment extends Fragment implements
         updateViewsWithDataFromDb();
 
         if (syncNeeded()) {
+            Log.d(TAG, "onResume: sync needed");
             startSync();
         }
     }
@@ -205,17 +224,44 @@ public class WeatherFragment extends Fragment implements
 
     private void updateViewsWithDataFromDb() {
         mCurrentConditions = mRealm.where(CurrentConditionsRealm.class).findFirst();
-        Log.d(TAG, "execute: retrieved current conditions from Realm");
-
         mHourlyForecasts = mRealm.where(HourlyForecastRealm.class).findAllSorted("dateTime");
-        Log.d(TAG, "execute: retrieved hourly forecasts from Realm");
-
         mDailyForecasts = mRealm.where(DailyForecastRealm.class).findAllSorted("date");
-        Log.d(TAG, "execute: retrieved daily forecasts from Realm");
 
-        //TODO
-        Log.d(TAG, "updateViewsWithDataFromDb: laieurghleadiuha;ehiorulaedksjfhasldi");
+        // current conditions card
+        TextView location = (TextView) mRootView.findViewById(R.id.current_location);
+        location.setText(String.format("%s, %s", mCurrentConditions.getCity(), mCurrentConditions.getStateAbbrev()));
 
+        long lastSyncTime = mPreferences.getLong(getString(R.string.weather_last_sync_time_key), -1);
+        Date updateDate = new Date(lastSyncTime);
+
+        TextView date = (TextView) mRootView.findViewById(R.id.current_date);
+        SimpleDateFormat sdf1 = new SimpleDateFormat("EEEE, MMM d", Locale.US);
+        date.setText(sdf1.format(updateDate));
+
+        TextView updated = (TextView) mRootView.findViewById(R.id.current_update_time);
+        SimpleDateFormat sdf2 = new SimpleDateFormat("'updated at 'h:m a", Locale.US);
+        updated.setText(sdf2.format(updateDate));
+
+        TextView condition = (TextView) mRootView.findViewById(R.id.current_condition);
+        condition.setText(mCurrentConditions.getCurrConditionDesc());
+
+        TextView temp = (TextView) mRootView.findViewById(R.id.current_temp);
+        String units = mPreferences.getString(
+                getString(R.string.pref_key_weather_units),
+                getString(R.string.weather_default_unit));
+        if (units.equals("Metric")) {
+            temp.setText(String.format("%d°", Math.round(mCurrentConditions.getTempCel())));
+        } else {
+            temp.setText(String.format("%d°", Math.round(mCurrentConditions.getTempFahr())));
+        }
+
+        ImageView icon = (ImageView) mRootView.findViewById(R.id.current_icon);
+        RotateAnimation anim = new RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        anim.setDuration(250);
+        Picasso.with(getContext()).load(mCurrentConditions.getIconUrl()).into(icon);
+        icon.startAnimation(anim);
+
+        // finally, stop the swipe refresh progress bar if it's animating
         stopRefreshingAnimation();
     }
 
@@ -223,8 +269,10 @@ public class WeatherFragment extends Fragment implements
         long lastSyncTime = mPreferences.getLong(getString(R.string.weather_last_sync_time_key), -1);
 
         // return true if no last sync, or sync was not within threshold
+        Log.d(TAG, "syncNeeded: millis since last sync " + (System.currentTimeMillis() - lastSyncTime));
+        Log.d(TAG, "syncNeeded: threshold " + SYNC_THRESHOLD_IN_MILLIS);
         return lastSyncTime == -1 ||
-                (System.currentTimeMillis() - lastSyncTime > SYNC_THRESHOLD_IN_MINUTES * 1000);
+                (System.currentTimeMillis() - lastSyncTime > SYNC_THRESHOLD_IN_MILLIS);
     }
 
     private void startSync() {
@@ -236,6 +284,7 @@ public class WeatherFragment extends Fragment implements
 
             // if already have location, use it
             if (mLastLocation != null) {
+                Log.d(TAG, "startSync: already have location");
                 requestWeatherSync(getQueryStringFromLocation(mLastLocation));
             } else if (mGoogleApiClient.isConnected()) {
                 // can't call connect() w/o disconnecting first, so call callback manually
@@ -253,8 +302,18 @@ public class WeatherFragment extends Fragment implements
                     !staticLocation.equals(getString(R.string.weather_static_location_default))) {
                 requestWeatherSync(staticLocation);
             } else {
+                // alert user to enable geolocation or enter a static location
                 Log.d(TAG, "startSync: geolocation off & no static location set!");
-                //TODO - notify use to either enable geolocation or enter static location - redirect to Settings activity???
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Location needed")
+                        .setMessage("Please enable device location or manually enter a location.")
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                startActivity(new Intent(getContext(), SettingsActivity.class));
+                            }
+                        })
+                        .show();
             }
         }
     }
@@ -264,6 +323,7 @@ public class WeatherFragment extends Fragment implements
     }
 
     private void requestWeatherSync(String locationQuery) {
+        Log.d(TAG, "requestWeatherSync: requestion sync for " + locationQuery);
         Bundle settingsBundle = new Bundle();
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);

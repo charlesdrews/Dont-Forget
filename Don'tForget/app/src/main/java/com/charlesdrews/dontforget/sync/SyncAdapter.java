@@ -91,6 +91,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
+                realm.clear(CurrentConditionsRealm.class);
                 CurrentConditionsRealm current = realm.createObject(CurrentConditionsRealm.class);
                 current.setValues(weatherResponse.getCurrent_observation());
                 Log.d(TAG, "getAndSaveForecastData: current conditions saved");
@@ -101,6 +102,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
+                realm.clear(HourlyForecastRealm.class);
                 for (HourlyForecast forecast : hourlyForecasts) {
                     HourlyForecastRealm hourly = realm.createObject(HourlyForecastRealm.class);
                     hourly.setValues(forecast);
@@ -114,6 +116,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
+                realm.clear(DailyForecastRealm.class);
                 for (ForecastDay forecast : forecastDays) {
                     DailyForecastRealm daily = realm.createObject(DailyForecastRealm.class);
                     daily.setValues(forecast);
