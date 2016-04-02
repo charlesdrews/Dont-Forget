@@ -24,4 +24,7 @@
     </string-array>
 
     <string name="weather_last_sync_time_key">weather_last_sync_time_key</string>
+
+    <string name="weather_data_credit">Data provided by:</string>
+    <string name="weather_underground_logo_desc">Weather Underground logo</string>
 </resources>

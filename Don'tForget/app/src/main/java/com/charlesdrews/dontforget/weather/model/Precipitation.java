@@ -1,11 +1,9 @@
 package com.charlesdrews.dontforget.weather.model;
 
-import io.realm.RealmObject;
-
 /**
  * Created by charlie on 3/16/16.
  */
-public class Precipitation extends RealmObject {
+public class Precipitation {
     private double english, metric;
 
     public double getEnglish() {

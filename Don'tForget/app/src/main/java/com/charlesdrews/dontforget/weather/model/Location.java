@@ -1,11 +1,9 @@
 package com.charlesdrews.dontforget.weather.model;
 
-import io.realm.RealmObject;
-
 /**
  * Created by charlie on 3/29/16.
  */
-public class Location extends RealmObject {
+public class Location {
     private String name, type, c;
     private double lat, lon;
 
