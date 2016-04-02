@@ -19,6 +19,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -246,10 +248,10 @@ public class WeatherFragment extends Fragment implements
         condition.setText(mCurrentConditions.getCurrConditionDesc());
 
         TextView temp = (TextView) mRootView.findViewById(R.id.current_temp);
-        String units = mPreferences.getString(
+        boolean useMetric = "Metric".equals(mPreferences.getString(
                 getString(R.string.pref_key_weather_units),
-                getString(R.string.weather_default_unit));
-        if (units.equals("Metric")) {
+                getString(R.string.weather_default_unit)));
+        if (useMetric) {
             temp.setText(String.format("%d°", Math.round(mCurrentConditions.getTempCel())));
         } else {
             temp.setText(String.format("%d°", Math.round(mCurrentConditions.getTempFahr())));
@@ -260,6 +262,16 @@ public class WeatherFragment extends Fragment implements
         anim.setDuration(250);
         Picasso.with(getContext()).load(mCurrentConditions.getIconUrl()).into(icon);
         icon.startAnimation(anim);
+
+        // set up recycler view for hourly data
+        RecyclerView hourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
+        hourlyRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        hourlyRecycler.setAdapter(new HourlyRecyclerAdapter(mHourlyForecasts, useMetric));
+
+        // set up recycler view for daily data
+        RecyclerView dailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
+        dailyRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        dailyRecycler.setAdapter(new DailyRecyclerAdapter(mDailyForecasts, useMetric));
 
         // finally, stop the swipe refresh progress bar if it's animating
         stopRefreshingAnimation();
