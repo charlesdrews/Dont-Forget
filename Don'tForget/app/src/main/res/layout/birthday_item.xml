@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="horizontal"
     android:gravity="center_vertical"
+    android:padding="5dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -13,7 +14,6 @@
 
     <TextView
         android:id="@+id/birthday_name_age"
-        android:text="Greer Davis (35)"
         android:textSize="20sp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
@@ -25,8 +25,7 @@
 
     <TextView
         android:id="@+id/birthday_date"
-        android:text="Jan 1, 1982"
-        android:textSize="20sp"
+        android:textSize="16sp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 </LinearLayout>

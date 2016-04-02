@@ -37,6 +37,7 @@ import com.charlesdrews.dontforget.sync.StubProvider;
 import com.charlesdrews.dontforget.sync.SyncAdapter;
 import com.charlesdrews.dontforget.weather.model.CurrentConditionsRealm;
 import com.charlesdrews.dontforget.weather.model.DailyForecastRealm;
+import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 import com.charlesdrews.dontforget.weather.model.HourlyForecastRealm;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -67,6 +68,11 @@ public class WeatherFragment extends Fragment implements
     private Location mLastLocation;
     private View mRootView;
     private Realm mRealm;
+    private RealmResults<HourlyForecastRealm> mHourlyForecasts;
+    private RealmResults<DailyForecastRealm> mDailyForecasts;
+    private RecyclerView mHourlyRecycler, mDailyRecycler;
+    private HourlyRecyclerAdapter mHourlyAdapter;
+    private DailyRecyclerAdapter mDailyAdapter;
 
     public WeatherFragment() {}
 
@@ -206,10 +212,10 @@ public class WeatherFragment extends Fragment implements
         CurrentConditionsRealm currentConditions = mRealm
                 .where(CurrentConditionsRealm.class)
                 .findFirst();
-        RealmResults<HourlyForecastRealm> hourlyForecasts = mRealm
+        mHourlyForecasts = mRealm
                 .where(HourlyForecastRealm.class)
                 .findAllSorted("dateTime");
-        RealmResults<DailyForecastRealm> dailyForecasts = mRealm
+        mDailyForecasts = mRealm
                 .where(DailyForecastRealm.class)
                 .findAllSorted("date");
 
@@ -250,26 +256,38 @@ public class WeatherFragment extends Fragment implements
             anim.setDuration(250);
             Picasso.with(getContext()).load(currentConditions.getIconUrl()).into(icon);
             icon.startAnimation(anim);
+
+            Log.d(TAG, "updateViewsWithDataFromDb: current card updated");
         }
 
-        //TODO - don't create a new recycler, adapter, layout manager on every update!
-
         // set up hourly forecasts card if data available
-        if (hourlyForecasts != null && hourlyForecasts.size() > 0) {
-            RecyclerView hourlyRecycler = (RecyclerView) mRootView
-                    .findViewById(R.id.weather_hourly_recycler);
-            hourlyRecycler.setLayoutManager(
-                    new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-            hourlyRecycler.setAdapter(new HourlyRecyclerAdapter(hourlyForecasts, useMetric));
+        if (mHourlyForecasts != null && mHourlyForecasts.size() > 0) {
+            if (mHourlyRecycler == null) {
+                mHourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
+                mHourlyRecycler.setLayoutManager(
+                        new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+
+                mHourlyAdapter = new HourlyRecyclerAdapter(mHourlyForecasts, useMetric);
+                mHourlyRecycler.setAdapter(mHourlyAdapter);
+            } else {
+                mHourlyAdapter.notifyDataSetChanged();
+            }
+            Log.d(TAG, "updateViewsWithDataFromDb: hourly card updated");
         }
 
         // set up daily forecasts card if data available
-        if (dailyForecasts != null && dailyForecasts.size() > 0) {
-            RecyclerView dailyRecycler = (RecyclerView) mRootView
-                    .findViewById(R.id.weather_daily_recycler);
-            dailyRecycler.setLayoutManager(
-                    new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-            dailyRecycler.setAdapter(new DailyRecyclerAdapter(dailyForecasts, useMetric));
+        if (mDailyForecasts != null && mDailyForecasts.size() > 0) {
+            if (mDailyRecycler == null) {
+                mDailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
+                mDailyRecycler.setLayoutManager(
+                        new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+
+                mDailyAdapter = new DailyRecyclerAdapter(mDailyForecasts, useMetric);
+                mDailyRecycler.setAdapter(mDailyAdapter);
+            } else {
+                mDailyAdapter.notifyDataSetChanged();
+            }
+            Log.d(TAG, "updateViewsWithDataFromDb: daily card updated");
         }
 
         //TODO - stop a progress bar

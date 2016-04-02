@@ -70,7 +70,7 @@ public class BirthdaysHelper {
 
         Calendar today = Calendar.getInstance();
         int currentYear = today.get(Calendar.YEAR);
-        int currentMonth = today.get(Calendar.MONTH);
+        int currentMonth = today.get(Calendar.MONTH) + 1; // month is 0-based
         int currentDay = today.get(Calendar.DAY_OF_MONTH);
 
         while (cursor.moveToNext()) {
@@ -96,19 +96,26 @@ public class BirthdaysHelper {
                 @Override
                 public void execute(Realm realm) {
                     BirthdayRealm bday = realm.where(BirthdayRealm.class).equalTo("id", id).findFirst();
-                    if (bday == null) {
+                    boolean newToRealm = (bday == null);
+
+                    if (newToRealm) {
                         bday = new BirthdayRealm();
                         bday.setNecessaryToNotify(true); // default to true
                     }
+
                     bday.setId(id);
                     bday.setName(name);
                     bday.setNextBirthday(nextBday);
                     bday.setYearOfBirth(birthYear); // will be -1 if not known
-                    realm.copyToRealmOrUpdate(bday); // update if already in Realm
+
+                    if (newToRealm) {
+                        realm.copyToRealm(bday);
+                    }
                     Log.d(TAG, String.format("execute: saved %s %s", name, nextBday.toString()));
                 }
             });
         }
+        cursor.close();
         realm.close();
     }
 

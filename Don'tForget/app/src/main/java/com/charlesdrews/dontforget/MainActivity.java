@@ -116,6 +116,10 @@ public class MainActivity extends AppCompatActivity implements
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     snackbarMessage = "Permission to read contacts granted";
                     mViewPager.setCurrentItem(MyFragmentPagerAdapter.BIRTHDAYS);
+
+                    BirthdaysFragment fragment = (BirthdaysFragment) mAdapter
+                            .getActiveFragment(MyFragmentPagerAdapter.BIRTHDAYS);
+                    fragment.syncContacts();
                 } else {
                     snackbarMessage = "Permission to read contacts denied";
                 }

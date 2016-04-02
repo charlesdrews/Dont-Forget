@@ -11,10 +11,12 @@ import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.charlesdrews.dontforget.DividerItemDecoration;
 import com.charlesdrews.dontforget.MainActivity;
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.birthdays.model.BirthdayRealm;
@@ -25,6 +27,7 @@ import io.realm.Realm;
 
 
 public class BirthdaysFragment extends Fragment {
+    private static final String TAG = BirthdaysFragment.class.getSimpleName();
 
     private View mRootView;
     private Context mContext;
@@ -32,6 +35,7 @@ public class BirthdaysFragment extends Fragment {
     private RecyclerView mRecycler;
     private BirthdayRecyclerAdapter mAdapter;
     private List<BirthdayRealm> mBirthdays;
+    private int mNumTimeUpdateOfViewsTriggeredSync = 0;
 
     public BirthdaysFragment() {}
 
@@ -53,18 +57,10 @@ public class BirthdaysFragment extends Fragment {
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-        RecyclerView recycler = (RecyclerView) mRootView.findViewById(R.id.birthday_recycler);
-        //TODO - set up recyclerview & adapter
-    }
-
-    @Override
     public void onResume() {
         super.onResume();
 
-        //TODO - refresh adapter?
+        updateViewsWithBirthdaysFromDb();
     }
 
     @Override
@@ -133,6 +129,7 @@ public class BirthdaysFragment extends Fragment {
                 .findAllSorted("nextBirthday");
 
         if (mBirthdays != null && mBirthdays.size() > 0) {
+            Log.d(TAG, "updateViewsWithBirthdaysFromDb: birthdays pulled from db");
             if (mRecycler == null) {
                 mRecycler = (RecyclerView) mRootView.findViewById(R.id.birthday_recycler);
 
@@ -140,8 +137,16 @@ public class BirthdaysFragment extends Fragment {
                 mRecycler.setAdapter(mAdapter);
 
                 mRecycler.setLayoutManager(new LinearLayoutManager(mContext));
+
+                mRecycler.addItemDecoration(new DividerItemDecoration(mContext));
             } else {
                 mAdapter.notifyDataSetChanged();
+            }
+        } else {
+            Log.d(TAG, "updateViewsWithBirthdaysFromDb: no birthdays found in db");
+            if (++mNumTimeUpdateOfViewsTriggeredSync <= 1) {
+                // careful not to start an infinite loop w/ SyncContactsAsyncTask and this
+                syncContacts();
             }
         }
     }

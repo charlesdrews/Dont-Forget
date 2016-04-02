@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.charlesdrews.dontforget.R;
@@ -15,6 +16,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+
+import io.realm.Realm;
 
 /**
  * Bind contact birthdays to the RecyclerView in BirthdaysFragment
@@ -41,9 +44,19 @@ public class BirthdayRecyclerAdapter
 
     @Override
     public void onBindViewHolder(BirthdayViewHolder holder, int position) {
-        BirthdayRealm bday = mData.get(position);
+        final BirthdayRealm bday = mData.get(position);
 
         holder.checkBox.setChecked(bday.isNecessaryToNotify());
+        holder.checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                Realm realm = Realm.getDefaultInstance();
+                realm.beginTransaction();
+                bday.setNecessaryToNotify(isChecked);
+                realm.commitTransaction();
+                realm.close();
+            }
+        });
 
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d", Locale.US);
         String bdayString = sdf.format(bday.getNextBirthday());
