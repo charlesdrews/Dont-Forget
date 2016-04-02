@@ -1,6 +1,7 @@
 package com.charlesdrews.dontforget.birthdays;
 
 import android.content.Context;
+import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,7 +44,7 @@ public class BirthdayRecyclerAdapter
     }
 
     @Override
-    public void onBindViewHolder(BirthdayViewHolder holder, int position) {
+    public void onBindViewHolder(final BirthdayViewHolder holder, int position) {
         final BirthdayRealm bday = mData.get(position);
 
         holder.checkBox.setChecked(bday.isNecessaryToNotify());
@@ -55,6 +56,10 @@ public class BirthdayRecyclerAdapter
                 bday.setNecessaryToNotify(isChecked);
                 realm.commitTransaction();
                 realm.close();
+
+                String message = "Birthday notifications " + (isChecked ? "ON" : "OFF") +
+                        " for " + bday.getName();
+                Snackbar.make(holder.itemView, message, Snackbar.LENGTH_SHORT).show();
             }
         });
 
