@@ -17,16 +17,13 @@ import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
 import android.widget.ImageView;
@@ -40,6 +37,7 @@ import com.charlesdrews.dontforget.sync.StubProvider;
 import com.charlesdrews.dontforget.sync.SyncAdapter;
 import com.charlesdrews.dontforget.weather.model.CurrentConditionsRealm;
 import com.charlesdrews.dontforget.weather.model.DailyForecastRealm;
+import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 import com.charlesdrews.dontforget.weather.model.HourlyForecastRealm;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -49,7 +47,6 @@ import com.google.android.gms.location.LocationServices;
 import com.squareup.picasso.Picasso;
 
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
@@ -58,7 +55,7 @@ import io.realm.RealmResults;
 
 public class WeatherFragment extends Fragment implements
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
-        LocationListener, SwipeRefreshLayout.OnRefreshListener {
+        LocationListener {
 
     private static final String TAG = WeatherFragment.class.getSimpleName();
     private static final long SYNC_THRESHOLD_IN_MINUTES = 15;
@@ -70,11 +67,12 @@ public class WeatherFragment extends Fragment implements
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
     private View mRootView;
-    private SwipeRefreshLayout mSwipeRefreshLayout;
     private Realm mRealm;
-    private CurrentConditionsRealm mCurrentConditions;
     private RealmResults<HourlyForecastRealm> mHourlyForecasts;
     private RealmResults<DailyForecastRealm> mDailyForecasts;
+    private RecyclerView mHourlyRecycler, mDailyRecycler;
+    private HourlyRecyclerAdapter mHourlyAdapter;
+    private DailyRecyclerAdapter mDailyAdapter;
 
     public WeatherFragment() {}
 
@@ -103,9 +101,6 @@ public class WeatherFragment extends Fragment implements
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_weather, container, false);
-
-        mSwipeRefreshLayout = (SwipeRefreshLayout) mRootView.findViewById(R.id.weather_swipe_refresh_layout);
-        mSwipeRefreshLayout.setOnRefreshListener(this);
 
         return mRootView;
     }
@@ -149,17 +144,6 @@ public class WeatherFragment extends Fragment implements
 
         if (mRealm != null && !mRealm.isClosed()) {
             mRealm.close();
-        }
-    }
-
-    @Override
-    public void onRefresh() {
-        startSync();
-    }
-
-    private void stopRefreshingAnimation() {
-        if (mSwipeRefreshLayout != null && mSwipeRefreshLayout.isRefreshing()) {
-            mSwipeRefreshLayout.setRefreshing(false);
         }
     }
 
@@ -225,56 +209,88 @@ public class WeatherFragment extends Fragment implements
     }
 
     private void updateViewsWithDataFromDb() {
-        mCurrentConditions = mRealm.where(CurrentConditionsRealm.class).findFirst();
-        mHourlyForecasts = mRealm.where(HourlyForecastRealm.class).findAllSorted("dateTime");
-        mDailyForecasts = mRealm.where(DailyForecastRealm.class).findAllSorted("date");
+        CurrentConditionsRealm currentConditions = mRealm
+                .where(CurrentConditionsRealm.class)
+                .findFirst();
+        mHourlyForecasts = mRealm
+                .where(HourlyForecastRealm.class)
+                .findAllSorted("dateTime");
+        mDailyForecasts = mRealm
+                .where(DailyForecastRealm.class)
+                .findAllSorted("date");
 
-        // current conditions card
-        TextView location = (TextView) mRootView.findViewById(R.id.current_location);
-        location.setText(String.format("%s, %s", mCurrentConditions.getCity(), mCurrentConditions.getStateAbbrev()));
-
-        long lastSyncTime = mPreferences.getLong(getString(R.string.weather_last_sync_time_key), -1);
-        Date updateDate = new Date(lastSyncTime);
-
-        TextView date = (TextView) mRootView.findViewById(R.id.current_date);
-        SimpleDateFormat sdf1 = new SimpleDateFormat("EEEE, MMM d", Locale.US);
-        date.setText(sdf1.format(updateDate));
-
-        TextView updated = (TextView) mRootView.findViewById(R.id.current_update_time);
-        SimpleDateFormat sdf2 = new SimpleDateFormat("'updated at 'h:m a", Locale.US);
-        updated.setText(sdf2.format(updateDate));
-
-        TextView condition = (TextView) mRootView.findViewById(R.id.current_condition);
-        condition.setText(mCurrentConditions.getCurrConditionDesc());
-
-        TextView temp = (TextView) mRootView.findViewById(R.id.current_temp);
         boolean useMetric = "Metric".equals(mPreferences.getString(
                 getString(R.string.pref_key_weather_units),
                 getString(R.string.weather_default_unit)));
-        if (useMetric) {
-            temp.setText(String.format("%d°", Math.round(mCurrentConditions.getTempCel())));
-        } else {
-            temp.setText(String.format("%d°", Math.round(mCurrentConditions.getTempFahr())));
+
+        // set up current conditions card if data available
+        if (currentConditions != null) {
+            TextView location = (TextView) mRootView.findViewById(R.id.current_location);
+            location.setText(String.format("%s, %s", currentConditions.getCity(),
+                    currentConditions.getStateAbbrev()));
+
+            long lastSyncTime = mPreferences.getLong(getString(R.string.weather_last_sync_time_key), -1);
+            Date updateDate = new Date(lastSyncTime);
+
+            TextView date = (TextView) mRootView.findViewById(R.id.current_date);
+            SimpleDateFormat sdf1 = new SimpleDateFormat("EEEE, MMM d", Locale.US);
+            date.setText(sdf1.format(updateDate));
+
+            TextView updated = (TextView) mRootView.findViewById(R.id.current_update_time);
+            SimpleDateFormat sdf2 = new SimpleDateFormat("'updated at 'h:m a", Locale.US);
+            updated.setText(sdf2.format(updateDate));
+
+            TextView condition = (TextView) mRootView.findViewById(R.id.current_condition);
+            condition.setText(currentConditions.getCurrConditionDesc());
+
+            TextView temp = (TextView) mRootView.findViewById(R.id.current_temp);
+            if (useMetric) {
+                temp.setText(String.format("%d°", Math.round(currentConditions.getTempCel())));
+            } else {
+                temp.setText(String.format("%d°", Math.round(currentConditions.getTempFahr())));
+            }
+
+            ImageView icon = (ImageView) mRootView.findViewById(R.id.current_icon);
+            RotateAnimation anim = new RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f,
+                    Animation.RELATIVE_TO_SELF, 0.5f);
+            anim.setDuration(250);
+            Picasso.with(getContext()).load(currentConditions.getIconUrl()).into(icon);
+            icon.startAnimation(anim);
+
+            Log.d(TAG, "updateViewsWithDataFromDb: current card updated");
         }
 
-        ImageView icon = (ImageView) mRootView.findViewById(R.id.current_icon);
-        RotateAnimation anim = new RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-        anim.setDuration(250);
-        Picasso.with(getContext()).load(mCurrentConditions.getIconUrl()).into(icon);
-        icon.startAnimation(anim);
+        // set up hourly forecasts card if data available
+        if (mHourlyForecasts != null && mHourlyForecasts.size() > 0) {
+            if (mHourlyRecycler == null) {
+                mHourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
+                mHourlyRecycler.setLayoutManager(
+                        new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
 
-        // set up recycler view for hourly data
-        RecyclerView hourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
-        hourlyRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        hourlyRecycler.setAdapter(new HourlyRecyclerAdapter(mHourlyForecasts, useMetric));
+                mHourlyAdapter = new HourlyRecyclerAdapter(mHourlyForecasts, useMetric);
+                mHourlyRecycler.setAdapter(mHourlyAdapter);
+            } else {
+                mHourlyAdapter.notifyDataSetChanged();
+            }
+            Log.d(TAG, "updateViewsWithDataFromDb: hourly card updated");
+        }
 
-        // set up recycler view for daily data
-        RecyclerView dailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
-        dailyRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        dailyRecycler.setAdapter(new DailyRecyclerAdapter(mDailyForecasts, useMetric));
+        // set up daily forecasts card if data available
+        if (mDailyForecasts != null && mDailyForecasts.size() > 0) {
+            if (mDailyRecycler == null) {
+                mDailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
+                mDailyRecycler.setLayoutManager(
+                        new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
 
-        // finally, stop the swipe refresh progress bar if it's animating
-        stopRefreshingAnimation();
+                mDailyAdapter = new DailyRecyclerAdapter(mDailyForecasts, useMetric);
+                mDailyRecycler.setAdapter(mDailyAdapter);
+            } else {
+                mDailyAdapter.notifyDataSetChanged();
+            }
+            Log.d(TAG, "updateViewsWithDataFromDb: daily card updated");
+        }
+
+        //TODO - stop a progress bar
     }
 
     private boolean syncNeeded() {
@@ -287,7 +303,7 @@ public class WeatherFragment extends Fragment implements
                 (System.currentTimeMillis() - lastSyncTime > SYNC_THRESHOLD_IN_MILLIS);
     }
 
-    private void startSync() {
+    public void startSync() {
         // use device location or static location per user prefs
         boolean okToUseDeviceLocation = mPreferences.getBoolean(getString(R.string.pref_key_weather_geo), false);
 
@@ -335,12 +351,14 @@ public class WeatherFragment extends Fragment implements
     }
 
     private void requestWeatherSync(String locationQuery) {
-        Log.d(TAG, "requestWeatherSync: requestion sync for " + locationQuery);
+        Log.d(TAG, "requestWeatherSync: requesting sync for " + locationQuery);
         Bundle settingsBundle = new Bundle();
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         settingsBundle.putString(SyncAdapter.LOCATION_QUERY_KEY, locationQuery);
         ContentResolver.requestSync(mAccount, getString(R.string.authority), settingsBundle);
+
+        //TODO - start a progress bar
     }
 
     private class WeatherContentObserver extends ContentObserver {

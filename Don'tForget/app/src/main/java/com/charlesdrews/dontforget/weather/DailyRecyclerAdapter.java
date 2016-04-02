@@ -20,7 +20,9 @@ import java.util.Locale;
 /**
  * Created by charlie on 4/2/16.
  */
-public class DailyRecyclerAdapter extends RecyclerView.Adapter<DailyRecyclerAdapter.DailyViewHolder> {
+public class DailyRecyclerAdapter
+        extends RecyclerView.Adapter<DailyRecyclerAdapter.DailyViewHolder> {
+
     private List<DailyForecastRealm> mData;
     private boolean mUseMetric;
     private Context mContext;

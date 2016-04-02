@@ -3,4 +3,9 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
+
+    <dimen name="weather_current_icon_size">60dp</dimen>
+    <dimen name="weather_current_temp_size">90sp</dimen>
+    <dimen name="weather_hourly_icon_size">40dp</dimen>
+    <dimen name="weather_daily_icon_size">40dp</dimen>
 </resources>

@@ -20,7 +20,9 @@ import java.util.Locale;
 /**
  * Created by charlie on 4/1/16.
  */
-public class HourlyRecyclerAdapter extends RecyclerView.Adapter<HourlyRecyclerAdapter.HourlyViewHolder> {
+public class HourlyRecyclerAdapter
+        extends RecyclerView.Adapter<HourlyRecyclerAdapter.HourlyViewHolder> {
+
     private List<HourlyForecastRealm> mData;
     private boolean mUseMetric;
     private Context mContext;
