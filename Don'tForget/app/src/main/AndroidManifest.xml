@@ -28,7 +28,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".settings.SettingsActivity"
+        <activity android:name=".SettingsActivity"
             android:label="@string/title_activity_settings" />
 
         <service android:name=".sync.AuthenticatorService">

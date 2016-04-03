@@ -27,7 +27,7 @@ public class AccountHelper {
     private static Account createAccount(Context context, AccountManager accountManager) {
         Account newAccount = new Account(
                 context.getString(R.string.account),
-                context.getString(R.string.account_type)
+                "dontforget.charlesdrews.com" // context.getString(R.string.account_type) - seems it MUST be hardcoded
         );
 
         if (accountManager.addAccountExplicitly(newAccount, null, null)) {
