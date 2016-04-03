@@ -21,16 +21,16 @@ import android.view.View;
 import android.widget.ProgressBar;
 
 import com.charlesdrews.dontforget.birthdays.BirthdaysFragment;
+import com.charlesdrews.dontforget.birthdays.AddContactBirthday;
 import com.charlesdrews.dontforget.weather.WeatherFragment;
 
 public class MainActivity extends AppCompatActivity implements
-        View.OnClickListener, ViewPager.OnPageChangeListener, ProgressBarListener {
+        View.OnClickListener, ViewPager.OnPageChangeListener,
+        ProgressBarListener, AddContactBirthday.BirthdayUpdatedListener {
     private static final String TAG = "MainActivity";
-    public static final int READ_CONTACTS_PERMISSION_REQUEST_CODE = 123;
+    public static final int CONTACTS_PERMISSION_REQUEST_CODE = 123;
     public static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
 
-    private Toolbar mToolbar;
-    private TabLayout mTabLayout;
     private ViewPager mViewPager;
     private MyFragmentPagerAdapter mAdapter;
     private FloatingActionButton mFab;
@@ -40,8 +40,8 @@ public class MainActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mToolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(mToolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         // load default preferences if first time running app
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
@@ -52,9 +52,9 @@ public class MainActivity extends AppCompatActivity implements
         mViewPager.setAdapter(mAdapter);
         mViewPager.addOnPageChangeListener(this);
 
-        mTabLayout = (TabLayout) findViewById(R.id.tab_layout);
-        if (mTabLayout != null) {
-            mTabLayout.setupWithViewPager(mViewPager);
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tab_layout);
+        if (tabLayout != null) {
+            tabLayout.setupWithViewPager(mViewPager);
         }
 
         // remaining views
@@ -64,6 +64,16 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
+    }
+
+    @Override
+    public void onBackPressed() {
+        int currTab = mViewPager.getCurrentItem();
+        if (currTab > 0) {
+            mViewPager.setCurrentItem(currTab - 1);
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -114,11 +124,11 @@ public class MainActivity extends AppCompatActivity implements
         String snackbarMessage = null;
 
         switch (requestCode) {
-            case READ_CONTACTS_PERMISSION_REQUEST_CODE:
+            case CONTACTS_PERMISSION_REQUEST_CODE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                     // read contacts -> granted
-                    snackbarMessage = "Permission to read contacts granted";
+                    snackbarMessage = "Permission to access contacts granted";
                     mViewPager.setCurrentItem(MyFragmentPagerAdapter.BIRTHDAYS);
 
                     BirthdaysFragment fragment = (BirthdaysFragment) mAdapter
@@ -127,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements
                 } else {
 
                     // read contacts -> denied
-                    snackbarMessage = "Permission to read contacts denied";
+                    snackbarMessage = "Permission to access contacts denied";
                 }
                 break;
             case ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE:
@@ -168,7 +178,8 @@ public class MainActivity extends AppCompatActivity implements
                 break;
             case MyFragmentPagerAdapter.BIRTHDAYS:
                 Log.d(TAG, "handleFabClick: birthdays");
-                //TODO
+                AddContactBirthday dialog = new AddContactBirthday(this);
+                dialog.launchContactSearch();
                 break;
         }
     }
@@ -233,5 +244,20 @@ public class MainActivity extends AppCompatActivity implements
                         mProgressBar.setVisibility(View.GONE);
                     }
                 });
+    }
+
+    @Override
+    public void onBirthdayUpdated(boolean success, String name) {
+        String snackbarMessage;
+        mViewPager.setCurrentItem(MyFragmentPagerAdapter.BIRTHDAYS);
+        if (success) {
+            BirthdaysFragment fragment = (BirthdaysFragment) mAdapter
+                    .getActiveFragment(MyFragmentPagerAdapter.BIRTHDAYS);
+            fragment.syncContacts();
+            snackbarMessage = "Birthday updated for " + name;
+        } else {
+            snackbarMessage = "Unable to update birthday for " + name;
+        }
+        Snackbar.make(mViewPager, snackbarMessage, Snackbar.LENGTH_LONG).show();
     }
 }
