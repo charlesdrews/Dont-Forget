@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
+ * Bind daily forecast data to the recycler view
  * Created by charlie on 4/2/16.
  */
 public class DailyRecyclerAdapter
@@ -27,14 +28,18 @@ public class DailyRecyclerAdapter
     private boolean mUseMetric;
     private Context mContext;
 
-    public DailyRecyclerAdapter(List<DailyForecastRealm> data, boolean useMetric) {
+    public DailyRecyclerAdapter(Context context, List<DailyForecastRealm> data, boolean useMetric) {
+        mContext = context;
         mData = data;
+        mUseMetric = useMetric;
+    }
+
+    public void setUseMetric(Boolean useMetric) {
         mUseMetric = useMetric;
     }
 
     @Override
     public DailyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        mContext = parent.getContext();
         View rootView = LayoutInflater.from(mContext).inflate(R.layout.daily_item, parent, false);
         return new DailyViewHolder(rootView);
     }
@@ -44,20 +49,22 @@ public class DailyRecyclerAdapter
         DailyForecastRealm forecast = mData.get(position);
 
         SimpleDateFormat sdf = new SimpleDateFormat("EEE d", Locale.US);
-        holder.date.setText(sdf.format(forecast.getDate()).toLowerCase());
+        holder.date.setText(sdf.format(forecast.getDate()));
 
-        if (mUseMetric) {
-            holder.temps.setText(String.format("%d°/%d°", forecast.getTempHighCel(), forecast.getTempLowCel()));
-        } else {
-            holder.temps.setText(String.format("%d°/%d°", forecast.getTempHighFahr(), forecast.getTempLowFahr()));
-        }
+        holder.tempHigh.setText(String.format("%d°/",
+                (mUseMetric ? forecast.getTempHighCel() : forecast.getTempHighFahr())
+        ));
+        holder.tempLow.setText(String.format("%d°",
+                (mUseMetric ? forecast.getTempLowCel() : forecast.getTempLowFahr())
+        ));
 
-        // use droplet or snowflake to precede probability of precipitation, depending on temperature
+        // use droplet or snowflake to precede probability of precipitation, depending on snowfall
         String format;
-        if (forecast.getTempHighFahr() > 32) {
-            format = Html.fromHtml("&#128167;").toString() + "%d%%"; // droplet
-        } else {
+        if (forecast.getSnowInches() > 0 ||
+                forecast.getConditionDesc().toLowerCase().contains("snow")) {
             format = Html.fromHtml("&#10052;").toString() + "%d%%"; // snowflake
+        } else {
+            format = Html.fromHtml("&#128167;").toString() + "%d%%"; // droplet
         }
         holder.probPrecip.setText(String.format(format, forecast.getProbOfPrecip()));
 
@@ -70,13 +77,14 @@ public class DailyRecyclerAdapter
     }
 
     public class DailyViewHolder extends RecyclerView.ViewHolder {
-        TextView date, temps, probPrecip;
+        TextView date, tempHigh, tempLow, probPrecip;
         ImageView icon;
 
         public DailyViewHolder(View itemView) {
             super(itemView);
             date = (TextView) itemView.findViewById(R.id.daily_date);
-            temps = (TextView) itemView.findViewById(R.id.daily_temps);
+            tempHigh = (TextView) itemView.findViewById(R.id.daily_temp_high);
+            tempLow = (TextView) itemView.findViewById(R.id.daily_temp_low);
             probPrecip = (TextView) itemView.findViewById(R.id.daily_prob_precip);
             icon = (ImageView) itemView.findViewById(R.id.daily_icon);
         }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <account-authenticator
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accountType="wunderground.com"
+    android:accountType="dontforget.charlesdrews.com"
     android:label="@string/app_name"/>
 <!--android:accountType was set to @string/account_type, but that cause errors.
     It appears it MUST be hardcoded here. -->

@@ -31,13 +31,12 @@ import android.widget.TextView;
 
 import com.charlesdrews.dontforget.MainActivity;
 import com.charlesdrews.dontforget.R;
-import com.charlesdrews.dontforget.settings.SettingsActivity;
+import com.charlesdrews.dontforget.SettingsActivity;
 import com.charlesdrews.dontforget.sync.AccountHelper;
 import com.charlesdrews.dontforget.sync.StubProvider;
 import com.charlesdrews.dontforget.sync.SyncAdapter;
 import com.charlesdrews.dontforget.weather.model.CurrentConditionsRealm;
 import com.charlesdrews.dontforget.weather.model.DailyForecastRealm;
-import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 import com.charlesdrews.dontforget.weather.model.HourlyForecastRealm;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -51,6 +50,7 @@ import java.util.Date;
 import java.util.Locale;
 
 import io.realm.Realm;
+import io.realm.RealmChangeListener;
 import io.realm.RealmResults;
 
 public class WeatherFragment extends Fragment implements
@@ -62,6 +62,7 @@ public class WeatherFragment extends Fragment implements
     private static final long SYNC_THRESHOLD_IN_MILLIS = SYNC_THRESHOLD_IN_MINUTES * 60 * 1000;
 
     private SharedPreferences mPreferences;
+    private boolean mUseMetric;
     private WeatherContentObserver mContentObserver;
     private Account mAccount;
     private GoogleApiClient mGoogleApiClient;
@@ -81,6 +82,9 @@ public class WeatherFragment extends Fragment implements
         super.onCreate(savedInstanceState);
 
         mPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        mUseMetric = "Metric".equals(mPreferences.getString(
+                getString(R.string.pref_key_weather_units),
+                getString(R.string.weather_default_unit)));
 
         mContentObserver = new WeatherContentObserver(new Handler());
 
@@ -95,12 +99,47 @@ public class WeatherFragment extends Fragment implements
         if (mRealm == null || mRealm.isClosed()) {
             mRealm = Realm.getDefaultInstance();
         }
+
+        mHourlyForecasts = mRealm.where(HourlyForecastRealm.class).findAllSorted("dateTime");
+        mDailyForecasts = mRealm.where(DailyForecastRealm.class).findAllSorted("date");
+
+        mHourlyAdapter = new HourlyRecyclerAdapter(getContext(), mHourlyForecasts, mUseMetric);
+        mDailyAdapter = new DailyRecyclerAdapter(getContext(), mDailyForecasts, mUseMetric);
+
+        mHourlyForecasts.addChangeListener(new RealmChangeListener() {
+            @Override
+            public void onChange() {
+                Log.d(TAG, "onChange: mHourlyForecasts changed");
+                mHourlyAdapter.notifyDataSetChanged();
+            }
+        });
+
+        mDailyForecasts.addChangeListener(new RealmChangeListener() {
+            @Override
+            public void onChange() {
+                Log.d(TAG, "onChange: mDailyForecasts changed");
+                mDailyAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_weather, container, false);
+
+        updateCurrentConditionsCard();
+
+        mHourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
+        mDailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
+
+        mHourlyRecycler.setLayoutManager(
+                new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        mDailyRecycler.setLayoutManager(
+                new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+
+        mHourlyRecycler.setAdapter(mHourlyAdapter);
+        mDailyRecycler.setAdapter(mDailyAdapter);
 
         return mRootView;
     }
@@ -109,11 +148,17 @@ public class WeatherFragment extends Fragment implements
     public void onResume() {
         super.onResume();
 
+        //TODO - is this even needed???
         // listen for data syncs
         getContext().getContentResolver().registerContentObserver(
                 Uri.parse(StubProvider.BASE_URI_STRING), true, mContentObserver);
 
-        updateViewsWithDataFromDb();
+        // update in case user changed preferences since onCreate() was run
+        mUseMetric = "Metric".equals(mPreferences.getString(
+                getString(R.string.pref_key_weather_units),
+                getString(R.string.weather_default_unit)));
+        mHourlyAdapter.setUseMetric(mUseMetric);
+        mDailyAdapter.setUseMetric(mUseMetric);
 
         if (syncNeeded()) {
             Log.d(TAG, "onResume: sync needed");
@@ -124,8 +169,6 @@ public class WeatherFragment extends Fragment implements
     @Override
     public void onPause() {
         super.onPause();
-
-        // stop listening for data syncs
         getContext().getContentResolver().unregisterContentObserver(mContentObserver);
     }
 
@@ -155,6 +198,7 @@ public class WeatherFragment extends Fragment implements
         if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "onConnected: permission NOT granted; starting request for permission");
+            ((MainActivity) getActivity()).stopProgressBar();
             ActivityCompat.requestPermissions(
                     getActivity(),
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -174,8 +218,8 @@ public class WeatherFragment extends Fragment implements
             Log.d(TAG, "onConnected: last location not available; launching a location request");
             LocationRequest locationRequest = LocationRequest.create()
                     .setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY)
-                    .setInterval(0)
-                    .setFastestInterval(0);
+                    .setInterval(1)
+                    .setFastestInterval(1);
             LocationServices.FusedLocationApi
                     .requestLocationUpdates(mGoogleApiClient, locationRequest, this);
         }
@@ -193,6 +237,7 @@ public class WeatherFragment extends Fragment implements
     }
 
     private void showConnectionProblemSnackbar() {
+        ((MainActivity) getActivity()).stopProgressBar();
         Snackbar.make(
                 getActivity().findViewById(android.R.id.content),
                 "Unable to get device location",
@@ -208,22 +253,9 @@ public class WeatherFragment extends Fragment implements
         requestWeatherSync(getQueryStringFromLocation(location));
     }
 
-    private void updateViewsWithDataFromDb() {
-        CurrentConditionsRealm currentConditions = mRealm
-                .where(CurrentConditionsRealm.class)
-                .findFirst();
-        mHourlyForecasts = mRealm
-                .where(HourlyForecastRealm.class)
-                .findAllSorted("dateTime");
-        mDailyForecasts = mRealm
-                .where(DailyForecastRealm.class)
-                .findAllSorted("date");
+    private void updateCurrentConditionsCard() {
+        CurrentConditionsRealm currentConditions = mRealm.where(CurrentConditionsRealm.class).findFirst();
 
-        boolean useMetric = "Metric".equals(mPreferences.getString(
-                getString(R.string.pref_key_weather_units),
-                getString(R.string.weather_default_unit)));
-
-        // set up current conditions card if data available
         if (currentConditions != null) {
             TextView location = (TextView) mRootView.findViewById(R.id.current_location);
             location.setText(String.format("%s, %s", currentConditions.getCity(),
@@ -244,7 +276,7 @@ public class WeatherFragment extends Fragment implements
             condition.setText(currentConditions.getCurrConditionDesc());
 
             TextView temp = (TextView) mRootView.findViewById(R.id.current_temp);
-            if (useMetric) {
+            if (mUseMetric) {
                 temp.setText(String.format("%d°", Math.round(currentConditions.getTempCel())));
             } else {
                 temp.setText(String.format("%d°", Math.round(currentConditions.getTempFahr())));
@@ -259,38 +291,6 @@ public class WeatherFragment extends Fragment implements
 
             Log.d(TAG, "updateViewsWithDataFromDb: current card updated");
         }
-
-        // set up hourly forecasts card if data available
-        if (mHourlyForecasts != null && mHourlyForecasts.size() > 0) {
-            if (mHourlyRecycler == null) {
-                mHourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
-                mHourlyRecycler.setLayoutManager(
-                        new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-
-                mHourlyAdapter = new HourlyRecyclerAdapter(mHourlyForecasts, useMetric);
-                mHourlyRecycler.setAdapter(mHourlyAdapter);
-            } else {
-                mHourlyAdapter.notifyDataSetChanged();
-            }
-            Log.d(TAG, "updateViewsWithDataFromDb: hourly card updated");
-        }
-
-        // set up daily forecasts card if data available
-        if (mDailyForecasts != null && mDailyForecasts.size() > 0) {
-            if (mDailyRecycler == null) {
-                mDailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
-                mDailyRecycler.setLayoutManager(
-                        new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-
-                mDailyAdapter = new DailyRecyclerAdapter(mDailyForecasts, useMetric);
-                mDailyRecycler.setAdapter(mDailyAdapter);
-            } else {
-                mDailyAdapter.notifyDataSetChanged();
-            }
-            Log.d(TAG, "updateViewsWithDataFromDb: daily card updated");
-        }
-
-        //TODO - stop a progress bar
     }
 
     private boolean syncNeeded() {
@@ -304,6 +304,8 @@ public class WeatherFragment extends Fragment implements
     }
 
     public void startSync() {
+        ((MainActivity) getActivity()).startProgressBar();
+
         // use device location or static location per user prefs
         boolean okToUseDeviceLocation = mPreferences.getBoolean(getString(R.string.pref_key_weather_geo), false);
 
@@ -332,6 +334,7 @@ public class WeatherFragment extends Fragment implements
             } else {
                 // alert user to enable geolocation or enter a static location
                 Log.d(TAG, "startSync: geolocation off & no static location set!");
+                ((MainActivity) getActivity()).stopProgressBar();
                 new AlertDialog.Builder(getContext())
                         .setTitle("Location needed")
                         .setMessage("Please enable device location or manually enter a location.")
@@ -357,8 +360,6 @@ public class WeatherFragment extends Fragment implements
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         settingsBundle.putString(SyncAdapter.LOCATION_QUERY_KEY, locationQuery);
         ContentResolver.requestSync(mAccount, getString(R.string.authority), settingsBundle);
-
-        //TODO - start a progress bar
     }
 
     private class WeatherContentObserver extends ContentObserver {
@@ -370,8 +371,10 @@ public class WeatherFragment extends Fragment implements
         @Override
         public void onChange(boolean selfChange, Uri uri) {
             super.onChange(selfChange, uri);
-            Log.d(TAG, "onChange: ContentObserver triggered");
-            updateViewsWithDataFromDb();
+            Log.d(TAG, "onChange: ContentObserver triggered - Realm listeners should trigger");
+
+            updateCurrentConditionsCard();
+            ((MainActivity) getActivity()).stopProgressBar();
         }
     }
 }

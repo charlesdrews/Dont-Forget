@@ -3,6 +3,7 @@ package com.charlesdrews.dontforget;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -17,15 +18,13 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ScrollView;
-import android.widget.Toast;
+import android.widget.ProgressBar;
 
 import com.charlesdrews.dontforget.birthdays.BirthdaysFragment;
-import com.charlesdrews.dontforget.settings.SettingsActivity;
 import com.charlesdrews.dontforget.weather.WeatherFragment;
 
 public class MainActivity extends AppCompatActivity implements
-        View.OnClickListener, ViewPager.OnPageChangeListener {
+        View.OnClickListener, ViewPager.OnPageChangeListener, ProgressBarListener {
     private static final String TAG = "MainActivity";
     public static final int READ_CONTACTS_PERMISSION_REQUEST_CODE = 123;
     public static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
@@ -35,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements
     private ViewPager mViewPager;
     private MyFragmentPagerAdapter mAdapter;
     private FloatingActionButton mFab;
+    private ProgressBar mProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,11 +57,13 @@ public class MainActivity extends AppCompatActivity implements
             mTabLayout.setupWithViewPager(mViewPager);
         }
 
+        // remaining views
         mFab = (FloatingActionButton) findViewById(R.id.fab);
         if (mFab != null) {
             mFab.setOnClickListener(this);
         }
 
+        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
     }
 
     @Override
@@ -114,6 +116,8 @@ public class MainActivity extends AppCompatActivity implements
         switch (requestCode) {
             case READ_CONTACTS_PERMISSION_REQUEST_CODE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // read contacts -> granted
                     snackbarMessage = "Permission to read contacts granted";
                     mViewPager.setCurrentItem(MyFragmentPagerAdapter.BIRTHDAYS);
 
@@ -121,22 +125,29 @@ public class MainActivity extends AppCompatActivity implements
                             .getActiveFragment(MyFragmentPagerAdapter.BIRTHDAYS);
                     fragment.syncContacts();
                 } else {
+
+                    // read contacts -> denied
                     snackbarMessage = "Permission to read contacts denied";
                 }
                 break;
             case ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // access device location -> granted
                     snackbarMessage = "Permission to use device location granted";
                     mViewPager.setCurrentItem(MyFragmentPagerAdapter.WEATHER);
                 } else {
+
+                    // access device location -> denied
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+                    prefs.edit().putBoolean(getString(R.string.pref_key_weather_geo), false).commit();
                     snackbarMessage = "Permission to use device location denied";
                 }
                 break;
         }
 
         if (snackbarMessage != null) {
-            Snackbar.make(mFab, snackbarMessage, Snackbar.LENGTH_SHORT)
-                    .show();
+            Snackbar.make(mFab, snackbarMessage, Snackbar.LENGTH_LONG).show();
         }
     }
 
@@ -204,5 +215,23 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onPageScrollStateChanged(int state) {
 
+    }
+
+    @Override
+    public void startProgressBar() {
+        mProgressBar.setAlpha(0f);
+        mProgressBar.setVisibility(View.VISIBLE);
+        mProgressBar.animate().alpha(1f).setDuration(500);
+    }
+
+    @Override
+    public void stopProgressBar() {
+        mProgressBar.animate().alpha(0f).setDuration(500)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        mProgressBar.setVisibility(View.GONE);
+                    }
+                });
     }
 }

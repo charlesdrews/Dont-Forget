@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
+ * Bind hourly forecast data to the recycler view
  * Created by charlie on 4/1/16.
  */
 public class HourlyRecyclerAdapter
@@ -27,14 +28,18 @@ public class HourlyRecyclerAdapter
     private boolean mUseMetric;
     private Context mContext;
 
-    public HourlyRecyclerAdapter(List<HourlyForecastRealm> data, boolean useMetric) {
+    public HourlyRecyclerAdapter(Context context, List<HourlyForecastRealm> data, boolean useMetric) {
+        mContext = context;
         mData = data;
+        mUseMetric = useMetric;
+    }
+
+    public void setUseMetric(Boolean useMetric) {
         mUseMetric = useMetric;
     }
 
     @Override
     public HourlyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        mContext = parent.getContext();
         View rootView = LayoutInflater.from(mContext).inflate(R.layout.hourly_item, parent, false);
         return new HourlyViewHolder(rootView);
     }
@@ -46,18 +51,17 @@ public class HourlyRecyclerAdapter
         SimpleDateFormat sdf = new SimpleDateFormat("h a", Locale.US);
         holder.time.setText(sdf.format(forecast.getDateTime()).toLowerCase());
 
-        if (mUseMetric) {
-            holder.temp.setText(String.format("%d°", forecast.getTempCel()));
-        } else {
-            holder.temp.setText(String.format("%d°", forecast.getTempFahr()));
-        }
+        holder.temp.setText(String.format("%d°",
+                (mUseMetric ? forecast.getTempCel() : forecast.getTempFahr())
+        ));
 
-        // use droplet or snowflake to precede probability of precipitation, depending on temperature
+        // use droplet or snowflake to precede probability of precipitation, depending on snowfall
         String format;
-        if (forecast.getTempFahr() > 32) {
-            format = Html.fromHtml("&#128167;").toString() + "%d%%"; // droplet
-        } else {
+        if (forecast.getSnowInches() > 0 ||
+                forecast.getConditionDesc().toLowerCase().contains("snow")) {
             format = Html.fromHtml("&#10052;").toString() + "%d%%"; // snowflake
+        } else {
+            format = Html.fromHtml("&#128167;").toString() + "%d%%"; // droplet
         }
         holder.probPrecip.setText(String.format(format, forecast.getProbOfPrecip()));
 

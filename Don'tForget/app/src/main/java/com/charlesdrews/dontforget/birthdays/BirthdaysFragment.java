@@ -24,18 +24,20 @@ import com.charlesdrews.dontforget.birthdays.model.BirthdayRealm;
 import java.util.List;
 
 import io.realm.Realm;
+import io.realm.RealmChangeListener;
+import io.realm.RealmResults;
 
 
-public class BirthdaysFragment extends Fragment {
+public class BirthdaysFragment extends Fragment
+        implements BirthdayRecyclerAdapter.ProvidesViewForSnackbar {
+
     private static final String TAG = BirthdaysFragment.class.getSimpleName();
 
     private View mRootView;
-    private Context mContext;
     private Realm mRealm;
+    private RealmResults<BirthdayRealm> mBirthdays;
     private RecyclerView mRecycler;
     private BirthdayRecyclerAdapter mAdapter;
-    private List<BirthdayRealm> mBirthdays;
-    private int mNumTimeUpdateOfViewsTriggeredSync = 0;
 
     public BirthdaysFragment() {}
 
@@ -43,24 +45,38 @@ public class BirthdaysFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        if (!haveReadContactsPermission()) {
+            requestReadContactsPermission();
+        }
+
         if (mRealm == null || mRealm.isClosed()) {
             mRealm = Realm.getDefaultInstance();
         }
+
+        mBirthdays = mRealm.where(BirthdayRealm.class).findAllSorted("nextBirthday");
+
+        mAdapter = new BirthdayRecyclerAdapter(getContext(), mBirthdays, this);
+
+        mBirthdays.addChangeListener(new RealmChangeListener() {
+            @Override
+            public void onChange() {
+                Log.d(TAG, "onChange: mBirthdays changed");
+                mAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        mContext = container.getContext();
         mRootView = inflater.inflate(R.layout.fragment_birthdays, container, false);
+
+        mRecycler = (RecyclerView) mRootView.findViewById(R.id.birthday_recycler);
+        mRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
+        mRecycler.setAdapter(mAdapter);
+        mRecycler.addItemDecoration(new DividerItemDecoration(getContext()));
+
         return mRootView;
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-
-        updateViewsWithBirthdaysFromDb();
     }
 
     @Override
@@ -73,7 +89,7 @@ public class BirthdaysFragment extends Fragment {
     }
 
     private boolean haveReadContactsPermission() {
-        return (ContextCompat.checkSelfPermission(mContext, Manifest.permission.READ_CONTACTS) ==
+        return (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_CONTACTS) ==
                 PackageManager.PERMISSION_GRANTED);
     }
 
@@ -96,58 +112,28 @@ public class BirthdaysFragment extends Fragment {
         new SyncContactsAsyncTask().execute();
     }
 
+    @Override
+    public View getViewFoSnackbar() {
+        return mRootView;
+    }
+
     public class SyncContactsAsyncTask extends AsyncTask<Void, Void, Boolean> {
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            if (!haveReadContactsPermission()) {
-                requestReadContactsPermission();
-                cancel(true);
-            }
-            //TODO - start a progress bar
+            ((MainActivity) getActivity()).startProgressBar();
         }
 
         @Override
         protected Boolean doInBackground(Void... params) {
-            return BirthdaysHelper.syncContactsBirthdaysToDb(mContext);
+            return BirthdaysHelper.syncContactsBirthdaysToDb(getContext());
         }
 
         @Override
         protected void onPostExecute(Boolean successful) {
             super.onPostExecute(successful);
-
-            if (successful) {
-                updateViewsWithBirthdaysFromDb();
-            }
-            //TODO - stop a progress bar
-        }
-    }
-
-    private void updateViewsWithBirthdaysFromDb() {
-        mBirthdays = mRealm.where(BirthdayRealm.class)
-                .findAllSorted("nextBirthday");
-
-        if (mBirthdays != null && mBirthdays.size() > 0) {
-            Log.d(TAG, "updateViewsWithBirthdaysFromDb: birthdays pulled from db");
-            if (mRecycler == null) {
-                mRecycler = (RecyclerView) mRootView.findViewById(R.id.birthday_recycler);
-
-                mAdapter = new BirthdayRecyclerAdapter(mBirthdays);
-                mRecycler.setAdapter(mAdapter);
-
-                mRecycler.setLayoutManager(new LinearLayoutManager(mContext));
-
-                mRecycler.addItemDecoration(new DividerItemDecoration(mContext));
-            } else {
-                mAdapter.notifyDataSetChanged();
-            }
-        } else {
-            Log.d(TAG, "updateViewsWithBirthdaysFromDb: no birthdays found in db");
-            if (++mNumTimeUpdateOfViewsTriggeredSync <= 1) {
-                // careful not to start an infinite loop w/ SyncContactsAsyncTask and this
-                syncContacts();
-            }
+            ((MainActivity) getActivity()).stopProgressBar();
         }
     }
 }

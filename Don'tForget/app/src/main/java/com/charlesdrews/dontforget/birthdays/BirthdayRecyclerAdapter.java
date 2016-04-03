@@ -27,18 +27,19 @@ import io.realm.Realm;
 public class BirthdayRecyclerAdapter
         extends RecyclerView.Adapter<BirthdayRecyclerAdapter.BirthdayViewHolder> {
 
-    private List<BirthdayRealm> mData;
     private Context mContext;
-    private int mCurrentYear;
+    private List<BirthdayRealm> mData;
+    private ProvidesViewForSnackbar mViewProvider;
 
-    public BirthdayRecyclerAdapter(List<BirthdayRealm> data) {
+    public BirthdayRecyclerAdapter(Context context, List<BirthdayRealm> data,
+                                   ProvidesViewForSnackbar viewProvider) {
+        mContext = context;
         mData = data;
-        mCurrentYear = Calendar.getInstance().get(Calendar.YEAR);
+        mViewProvider = viewProvider;
     }
 
     @Override
     public BirthdayViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        mContext = parent.getContext();
         View rootView = LayoutInflater.from(mContext).inflate(R.layout.birthday_item, parent, false);
         return new BirthdayViewHolder(rootView);
     }
@@ -47,6 +48,7 @@ public class BirthdayRecyclerAdapter
     public void onBindViewHolder(final BirthdayViewHolder holder, int position) {
         final BirthdayRealm bday = mData.get(position);
 
+        holder.checkBox.setOnCheckedChangeListener(null); // disable any previous listener
         holder.checkBox.setChecked(bday.isNecessaryToNotify());
         holder.checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -59,7 +61,7 @@ public class BirthdayRecyclerAdapter
 
                 String message = "Birthday notifications " + (isChecked ? "ON" : "OFF") +
                         " for " + bday.getName();
-                Snackbar.make(holder.itemView, message, Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(mViewProvider.getViewFoSnackbar(), message, Snackbar.LENGTH_LONG).show();
             }
         });
 
@@ -70,7 +72,13 @@ public class BirthdayRecyclerAdapter
         if (birthYear == -1) { // don't know birth year / age
             holder.nameAge.setText(bday.getName());
         } else {
-            int nextAge = mCurrentYear - birthYear + 1;
+            Calendar calendar = Calendar.getInstance();
+            calendar.clear();
+            calendar.setTime(bday.getNextBirthday());
+            int yearOfNextBday = calendar.get(Calendar.YEAR); // could be this year or next
+
+            int nextAge = yearOfNextBday - birthYear;
+
             holder.nameAge.setText(String.format("%s (%d)", bday.getName(), nextAge));
             bdayString = bdayString + ", " + birthYear;
         }
@@ -92,5 +100,9 @@ public class BirthdayRecyclerAdapter
             nameAge = (TextView) itemView.findViewById(R.id.birthday_name_age);
             date = (TextView) itemView.findViewById(R.id.birthday_date);
         }
+    }
+
+    public interface ProvidesViewForSnackbar {
+        View getViewFoSnackbar();
     }
 }
