@@ -8,18 +8,15 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
 import android.util.Log;
-import android.util.SparseArray;
 
 import com.charlesdrews.dontforget.birthdays.model.BirthdayRealm;
 import com.charlesdrews.dontforget.birthdays.model.ContactSearchResult;
-import com.charlesdrews.dontforget.weather.model.CurrentConditions;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
@@ -270,27 +267,22 @@ public class BirthdaysHelper {
                 ContactsContract.Data.DISPLAY_NAME_PRIMARY :
                 ContactsContract.Data.DISPLAY_NAME;
 
-//        SparseArray<String> contactMap = new SparseArray<>(cursor.getCount());
-//        Set<ContactSearchResult> contactsSet = new HashSet<ContactSearchResult>();
-        ArrayList<ContactSearchResult> results = new ArrayList<>(cursor.getCount());
+        HashMap<String, String> contactsMap = new HashMap<>(cursor.getCount());
 
         while (cursor.moveToNext()) {
-            int id = cursor.getInt(cursor.getColumnIndex(ContactsContract.Contacts._ID));
             String lookupKey = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
             String name = cursor.getString(cursor.getColumnIndex(nameField));
-            ContactSearchResult contact = new ContactSearchResult(id, lookupKey, name);
+            ContactSearchResult contact = new ContactSearchResult(lookupKey, name);
 
             if (name != null && !name.isEmpty()) {
-//                contactMap.put(id, name);
-//                contactsSet.add(contact);
-                results.add(contact);
+                contactsMap.put(lookupKey, name);
             }
         }
 
-//        ArrayList<ContactSearchResult> results = new ArrayList<>(contactMap.size());
-//        for (int i = 0; i < contactMap.size(); i++) {
-//            results.add(new ContactSearchResult(contactMap.keyAt(i), contactMap.get(contactMap.keyAt(i))));
-//        }
+        ArrayList<ContactSearchResult> results = new ArrayList<>(contactsMap.size());
+        for (String key : contactsMap.keySet()) {
+            results.add(new ContactSearchResult(key, contactsMap.get(key)));
+        }
 
         cursor.close();
         return results;

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.widget.AutoCompleteTextView;
 
 /**
+ * Add fields to standard AutoCompleteTextView to keep track of person selected
  * Created by charlie on 4/3/16.
  */
 public class ContactAutoCompleteTextView extends AutoCompleteTextView {
