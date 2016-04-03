@@ -1,17 +1,25 @@
 package com.charlesdrews.dontforget.birthdays;
 
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.charlesdrews.dontforget.birthdays.model.BirthdayRealm;
+import com.charlesdrews.dontforget.birthdays.model.ContactSearchResult;
+import com.charlesdrews.dontforget.weather.model.CurrentConditions;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
@@ -22,6 +30,7 @@ import io.realm.RealmConfiguration;
  */
 public class BirthdaysHelper {
     private static final String TAG = "BirthdaysHelper";
+    private static final Uri URI = ContactsContract.Data.CONTENT_URI;
 
     public static boolean syncContactsBirthdaysToDb(Context context) {
         Cursor cursor = getContactsBirthdays(context);
@@ -34,7 +43,6 @@ public class BirthdaysHelper {
 
     private static Cursor getContactsBirthdays(Context context) {
         Log.d(TAG, "getContactsBirthdays: starting");
-        Uri uri = ContactsContract.Data.CONTENT_URI;
 
         String[] projection = new String[] {
                 ContactsContract.Data._ID,
@@ -55,7 +63,123 @@ public class BirthdaysHelper {
         };
 
         ContentResolver contentResolver = context.getContentResolver();
-        return contentResolver.query(uri, projection, selection, selectionArgs, null);
+        return contentResolver.query(URI, projection, selection, selectionArgs, null);
+    }
+
+    public static List<ContactSearchResult> getAllContacts(Context context) {
+        Log.d(TAG, "getAllContacts: starting");
+
+        String nameField = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
+                ContactsContract.Data.DISPLAY_NAME_PRIMARY :
+                ContactsContract.Data.DISPLAY_NAME;
+
+        String[] projection = new String[]
+                {ContactsContract.Contacts._ID, ContactsContract.Contacts.LOOKUP_KEY, nameField};
+
+        ContentResolver contentResolver = context.getContentResolver();
+        Cursor cursor = contentResolver.query(URI, projection, null, null, nameField);
+        return convertCursor(cursor);
+    }
+
+    public static String getContactBirthdayByLookupKey(Context context, String lookupKey) {
+        String[] projection = new String[] {
+                ContactsContract.CommonDataKinds.Event.START_DATE
+        };
+
+        String selection = ContactsContract.Contacts.LOOKUP_KEY + " = ? AND " +
+                ContactsContract.Data.MIMETYPE + " = ? AND " +
+                ContactsContract.CommonDataKinds.Event.TYPE + " = ?";
+
+        String[] selectionArgs = new String[] {lookupKey,
+                ContactsContract.CommonDataKinds.Event.CONTENT_ITEM_TYPE,
+                String.valueOf(ContactsContract.CommonDataKinds.Event.TYPE_BIRTHDAY)
+        };
+
+        ContentResolver contentResolver = context.getContentResolver();
+        Cursor cursor = contentResolver.query(URI, projection, selection, selectionArgs, null);
+
+        if (cursor != null && cursor.moveToFirst()) {
+            return cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Event.START_DATE));
+        }
+        return null;
+    }
+
+    /**
+     * Update the contact specified by lookupKey with the specified birthday.
+     * Input bdayParts should be [y,m,d] with -1 for year if not known.
+     * Returns true if update successful, else false.
+     */
+    public static boolean updateBirthdayInContactProvider(Context context, String lookupKey, int[] bdayParts) {
+        Log.d(TAG, "updateBirthdayInContactProvider: starting");
+        ContentResolver contentResolver = context.getContentResolver();
+
+        // get Event.CONTACT_ID by Contacts.LOOKUP_KEY
+        String[] proj1 = new String[]{ContactsContract.CommonDataKinds.Event.CONTACT_ID};
+        String sel1 = ContactsContract.Contacts.LOOKUP_KEY + " = ?";
+        String[] selArgs1 = new String[]{lookupKey};
+        Cursor cur1 = contentResolver.query(URI, proj1, sel1, selArgs1, null);
+        long contactId = -1;
+        if (cur1 != null && cur1.moveToFirst()) {
+            Log.d(TAG, "updateBirthdayInContactProvider: got CONTACT_ID");
+            contactId = cur1.getLong(0);
+            cur1.close();
+        } else {
+            Log.d(TAG, "updateBirthdayInContactProvider: failed to get CONTACT_ID");
+            if (cur1 != null) {cur1.close();}
+            return false;
+        }
+
+        // get Event.RAW_CONTACT_ID by Event.CONTACT_ID
+        String[] proj2 = new String[]{ContactsContract.CommonDataKinds.Event.RAW_CONTACT_ID};
+        String sel2 = ContactsContract.CommonDataKinds.Event.CONTACT_ID + " = ?";
+        String[] selArgs2 = new String[]{String.valueOf(contactId)};
+        Cursor cur2 = contentResolver.query(URI, proj2, sel2, selArgs2, null);
+        long rawContactId = -1;
+        if (cur2 != null && cur2.moveToFirst()) {
+            Log.d(TAG, "updateBirthdayInContactProvider: got RAW_CONTACT_ID");
+            rawContactId = cur2.getLong(0);
+            cur2.close();
+        } else {
+            Log.d(TAG, "updateBirthdayInContactProvider: failed to get RAW_CONTACT_ID");
+            if (cur2 != null) {cur2.close();}
+            return false;
+        }
+
+        // see if birthday already exists for this contact
+        String[] proj3 = new String[]{ContactsContract.Data._ID};
+        String sel3 = ContactsContract.Data.LOOKUP_KEY + " = ? AND " +
+                ContactsContract.Data.MIMETYPE + " = ? AND " +
+                ContactsContract.CommonDataKinds.Event.TYPE + " = ?";
+        String[] selArgs3 = new String[] {lookupKey,
+                ContactsContract.CommonDataKinds.Event.CONTENT_ITEM_TYPE,
+                String.valueOf(ContactsContract.CommonDataKinds.Event.TYPE_BIRTHDAY)};
+        Cursor cur3 = contentResolver.query(URI, proj3, sel3, selArgs3, null);
+        long birthdayRowId = -1;
+        if (cur3 != null) {
+            if (cur3.moveToFirst()) {
+                birthdayRowId = cur3.getLong(0);
+            }
+            cur3.close();
+        }
+
+        // update or insert birthday
+        ContentValues values = new ContentValues();
+        values.put(ContactsContract.Data.RAW_CONTACT_ID, rawContactId);
+        values.put(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Event.CONTENT_ITEM_TYPE);
+        values.put(ContactsContract.CommonDataKinds.Event.TYPE, ContactsContract.CommonDataKinds.Event.TYPE_BIRTHDAY);
+        String bdayString = (bdayParts[0] == -1 ? "-" : bdayParts[0]) + "-" + bdayParts[1] +
+                "-" + bdayParts[2];
+        values.put(ContactsContract.CommonDataKinds.Event.START_DATE, bdayString);
+        if (birthdayRowId >= 0) {
+            Log.d(TAG, "updateBirthdayInContactProvider: updating existing birthday");
+            int numRowsUpdated = contentResolver.update(URI, values, ContactsContract.Data._ID + " = ?",
+                    new String[]{String.valueOf(birthdayRowId)});
+            return numRowsUpdated > 0;
+        } else {
+            Log.d(TAG, "updateBirthdayInContactProvider: inserting new birthday");
+            Uri newUri = contentResolver.insert(URI, values);
+            return newUri != null;
+        }
     }
 
     private static void saveBirthdaysToDb(Cursor cursor, Context context) {
@@ -119,7 +243,12 @@ public class BirthdaysHelper {
         realm.close();
     }
 
-    private static int[] getBdayParts(String bday) {
+    /**
+     * Parses birthday from format provided by Contacts Provider into array of parts.
+     * @param bday - String from query
+     * @return [Y,M,D] if input formatted YYYY-MM-DD] else [-1,M,D] if input formatted --MM-DD
+     */
+    public static int[] getBdayParts(String bday) {
         int[] yearMonthDay = new int[3];
         String[] parts = bday.split("-");
 
@@ -134,5 +263,36 @@ public class BirthdaysHelper {
         }
 
         return yearMonthDay;
+    }
+
+    private static List<ContactSearchResult> convertCursor(Cursor cursor) {
+        String nameField = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
+                ContactsContract.Data.DISPLAY_NAME_PRIMARY :
+                ContactsContract.Data.DISPLAY_NAME;
+
+//        SparseArray<String> contactMap = new SparseArray<>(cursor.getCount());
+//        Set<ContactSearchResult> contactsSet = new HashSet<ContactSearchResult>();
+        ArrayList<ContactSearchResult> results = new ArrayList<>(cursor.getCount());
+
+        while (cursor.moveToNext()) {
+            int id = cursor.getInt(cursor.getColumnIndex(ContactsContract.Contacts._ID));
+            String lookupKey = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
+            String name = cursor.getString(cursor.getColumnIndex(nameField));
+            ContactSearchResult contact = new ContactSearchResult(id, lookupKey, name);
+
+            if (name != null && !name.isEmpty()) {
+//                contactMap.put(id, name);
+//                contactsSet.add(contact);
+                results.add(contact);
+            }
+        }
+
+//        ArrayList<ContactSearchResult> results = new ArrayList<>(contactMap.size());
+//        for (int i = 0; i < contactMap.size(); i++) {
+//            results.add(new ContactSearchResult(contactMap.keyAt(i), contactMap.get(contactMap.keyAt(i))));
+//        }
+
+        cursor.close();
+        return results;
     }
 }

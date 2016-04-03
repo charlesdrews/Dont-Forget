@@ -1,7 +1,6 @@
 package com.charlesdrews.dontforget.birthdays;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -20,8 +19,6 @@ import com.charlesdrews.dontforget.DividerItemDecoration;
 import com.charlesdrews.dontforget.MainActivity;
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.birthdays.model.BirthdayRealm;
-
-import java.util.List;
 
 import io.realm.Realm;
 import io.realm.RealmChangeListener;
@@ -89,8 +86,11 @@ public class BirthdaysFragment extends Fragment
     }
 
     private boolean haveReadContactsPermission() {
-        return (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_CONTACTS) ==
-                PackageManager.PERMISSION_GRANTED);
+        return (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.READ_CONTACTS)
+                        == PackageManager.PERMISSION_GRANTED)
+                &&
+                (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.WRITE_CONTACTS)
+                        == PackageManager.PERMISSION_GRANTED);
     }
 
     private void requestReadContactsPermission() {
@@ -103,8 +103,8 @@ public class BirthdaysFragment extends Fragment
         }
         ActivityCompat.requestPermissions(
                 getActivity(),
-                new String[]{Manifest.permission.READ_CONTACTS},
-                MainActivity.READ_CONTACTS_PERMISSION_REQUEST_CODE
+                new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS},
+                MainActivity.CONTACTS_PERMISSION_REQUEST_CODE
         );
     }
 

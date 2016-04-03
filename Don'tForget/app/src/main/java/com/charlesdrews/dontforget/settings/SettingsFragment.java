@@ -11,7 +11,9 @@ import com.charlesdrews.dontforget.R;
 /**
  * Created by charlie on 3/29/16.
  */
-public class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
+public class SettingsFragment extends PreferenceFragment
+        implements SharedPreferences.OnSharedPreferenceChangeListener {
+
     private WeatherLocationPreference mWeatherStaticLocation;
 
     @Override

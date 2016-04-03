@@ -21,12 +21,13 @@ import android.view.View;
 import android.widget.ProgressBar;
 
 import com.charlesdrews.dontforget.birthdays.BirthdaysFragment;
+import com.charlesdrews.dontforget.birthdays.AddContactBirthday;
 import com.charlesdrews.dontforget.weather.WeatherFragment;
 
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener, ViewPager.OnPageChangeListener, ProgressBarListener {
     private static final String TAG = "MainActivity";
-    public static final int READ_CONTACTS_PERMISSION_REQUEST_CODE = 123;
+    public static final int CONTACTS_PERMISSION_REQUEST_CODE = 123;
     public static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
 
     private Toolbar mToolbar;
@@ -64,6 +65,16 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
+    }
+
+    @Override
+    public void onBackPressed() {
+        int currTab = mViewPager.getCurrentItem();
+        if (currTab > 0) {
+            mViewPager.setCurrentItem(currTab - 1);
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -114,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements
         String snackbarMessage = null;
 
         switch (requestCode) {
-            case READ_CONTACTS_PERMISSION_REQUEST_CODE:
+            case CONTACTS_PERMISSION_REQUEST_CODE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                     // read contacts -> granted
@@ -168,7 +179,8 @@ public class MainActivity extends AppCompatActivity implements
                 break;
             case MyFragmentPagerAdapter.BIRTHDAYS:
                 Log.d(TAG, "handleFabClick: birthdays");
-                //TODO
+                AddContactBirthday dialog = new AddContactBirthday();
+                dialog.launchContactSearch(this);
                 break;
         }
     }
