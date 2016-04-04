@@ -9,12 +9,8 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.charlesdrews.dontforget.R;
-//import com.charlesdrews.dontforget.notifications.model.NotificationTimeRealm;
 
 import java.util.Calendar;
-
-//import io.realm.Realm;
-//import io.realm.RealmConfiguration;
 
 /**
  * Schedule the notifications service via alarm manager

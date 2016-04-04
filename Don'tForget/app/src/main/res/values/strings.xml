@@ -40,8 +40,8 @@
     <string name="pref_key_notification_evening">pref_key_notification_evening</string>
     <string name="before_work_default_time">8:0</string>
     <string name="lunchtime_default_time">12:0</string>
-    <string name="on_the_way_home_default_time">5:0</string>
-    <string name="evening_default_time">7:0</string>
+    <string name="on_the_way_home_default_time">17:0</string>
+    <string name="evening_default_time">19:0</string>
 
     <string name="pref_title_weather_category">Weather</string>
     <string name="pref_key_weather_category">pref_key_weather_category</string>
