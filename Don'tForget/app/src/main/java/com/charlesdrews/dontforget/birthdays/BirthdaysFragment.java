@@ -50,7 +50,7 @@ public class BirthdaysFragment extends Fragment
             mRealm = Realm.getDefaultInstance();
         }
 
-        mBirthdays = mRealm.where(BirthdayRealm.class).findAllSorted("nextBirthday");
+        mBirthdays = mRealm.where(BirthdayRealm.class).findAllSortedAsync("nextBirthday");
 
         mAdapter = new BirthdayRecyclerAdapter(getContext(), mBirthdays, this);
 

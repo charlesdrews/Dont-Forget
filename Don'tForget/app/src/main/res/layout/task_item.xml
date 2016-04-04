@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:padding="5dp"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content">
 
     <CheckBox
         android:id="@+id/task_checkbox"
@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
-    <TextView
+    <com.charlesdrews.dontforget.tasks.StrikeThruTextView
         android:id="@+id/task_text"
         style="?android:attr/textAppearanceLarge"
         android:layout_alignParentTop="true"
@@ -23,7 +23,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <TextView
+    <com.charlesdrews.dontforget.tasks.StrikeThruTextView
         android:id="@+id/task_time_of_day"
         style="?android:attr/textAppearanceSmall"
         android:layout_below="@id/task_text"
@@ -32,7 +32,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
-    <TextView
+    <com.charlesdrews.dontforget.tasks.StrikeThruTextView
         android:id="@+id/task_date"
         style="?android:attr/textAppearanceSmall"
         android:layout_below="@id/task_text"

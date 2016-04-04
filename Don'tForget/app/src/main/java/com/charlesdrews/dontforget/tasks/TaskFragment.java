@@ -1,21 +1,29 @@
 package com.charlesdrews.dontforget.tasks;
 
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.NumberPicker;
 
 import com.charlesdrews.dontforget.DividerItemDecoration;
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.notifications.TimeOfDay;
 import com.charlesdrews.dontforget.tasks.model.TaskRealm;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 import io.realm.Realm;
 import io.realm.RealmChangeListener;
@@ -62,7 +70,7 @@ public class TaskFragment extends Fragment {
                     TaskRealm firstTask = mRealm.createObject(TaskRealm.class);
                     firstTask.setDate(new Date());
                     firstTask.setTimeOfDay(TimeOfDay.LUNCHTIME.getInt());
-                    firstTask.setTaskText("Your first task");
+                    firstTask.setTaskText("Set some more tasks for yourself! :)");
                     firstTask.setCompleted(false);
                     firstTask.setVisible(true);
                     mRealm.commitTransaction();
@@ -95,25 +103,84 @@ public class TaskFragment extends Fragment {
     }
 
     public void refreshTasks() {
-        mRealm.executeTransactionAsync(new Realm.Transaction() {
+        mRealm.beginTransaction();
+        // there is a bug w/ iterators in Realm, so use normal for loop
+        for (int i = 0; i < mTasks.size(); i++) {
+            TaskRealm task = mTasks.get(i);
+            task.setVisible(!task.isCompleted());
+        }
+        mRealm.commitTransaction();
+    }
+
+    public void addTask() {
+        Log.d(TAG, "addTask: starting");
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Add new task");
+
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.task_adder_body, null);
+        final NumberPicker dayPicker = (NumberPicker) view.findViewById(R.id.add_task_day_picker);
+        final NumberPicker timePicker = (NumberPicker) view.findViewById(R.id.add_task_time_picker);
+        final EditText editText = (EditText) view.findViewById(R.id.add_task_input);
+
+        // set up dayPicker to show today & next 2 weeks
+        dayPicker.setMinValue(0);
+        dayPicker.setMaxValue(13);
+        dayPicker.setWrapSelectorWheel(false);
+        String[] days = new String[14];
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE M/d", Locale.US);
+        Calendar calendar = Calendar.getInstance();
+        for (int i = 0; i < 14; i++) {
+            days[i] = sdf.format(calendar.getTime());
+            calendar.add(Calendar.DATE, 1);
+        }
+        dayPicker.setDisplayedValues(days);
+
+        // set up timePicker to show the 4 enum options
+        timePicker.setMaxValue(0);
+        timePicker.setMaxValue(3);
+        timePicker.setWrapSelectorWheel(true);
+        String[] times = new String[4];
+        for (int i = 0; i < 4; i++) {
+            times[i] = TimeOfDay.getTimeOfDay(i).toString();
+        }
+        timePicker.setDisplayedValues(times);
+
+        // add views & buttons to dialog
+        builder.setView(view)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("OK", null);
+
+        final AlertDialog alertDialog = builder.create();
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
-            public void execute(Realm realm) {
-                for (TaskRealm task : mTasks) {
-                    if (task.isCompleted()) {
-                        task.setVisible(false);
+            public void onShow(DialogInterface dialog) {
+                Button button = alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (editText.getText().toString().isEmpty()) {
+                            editText.setError("Please enter a task");
+                        } else {
+                            mRealm.beginTransaction();
+                            TaskRealm task = mRealm.createObject(TaskRealm.class);
+
+                            Calendar cal = Calendar.getInstance();
+                            cal.add(Calendar.DATE, dayPicker.getValue());
+                            task.setDate(cal.getTime());
+
+                            task.setTimeOfDay(timePicker.getValue());
+                            task.setTaskText(editText.getText().toString());
+                            task.setCompleted(false);
+                            task.setVisible(true);
+                            mRealm.commitTransaction();
+
+                            alertDialog.dismiss();
+                        }
                     }
-                }
-            }
-        }, new Realm.Transaction.OnSuccess() {
-            @Override
-            public void onSuccess() {
-                Log.d(TAG, "onSuccess: tasks refreshed");
-            }
-        }, new Realm.Transaction.OnError() {
-            @Override
-            public void onError(Throwable error) {
-                Log.d(TAG, "onError: unable to refresh tasks");
+                });
             }
         });
+        alertDialog.show();
     }
 }

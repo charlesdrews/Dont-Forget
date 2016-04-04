@@ -176,12 +176,14 @@ public class MainActivity extends AppCompatActivity implements
 
     private void handleFabClick(int currentFragmentPosition) {
         switch (currentFragmentPosition) {
+
             case MyFragmentPagerAdapter.TASKS:
-                Log.d(TAG, "handleFabClick: tasks");
-                //TODO
+                TaskFragment fragment = (TaskFragment) mAdapter
+                        .getActiveFragment(MyFragmentPagerAdapter.TASKS);
+                fragment.addTask();
                 break;
+
             case MyFragmentPagerAdapter.BIRTHDAYS:
-                Log.d(TAG, "handleFabClick: birthdays");
                 AddContactBirthday dialog = new AddContactBirthday(this);
                 dialog.launchContactSearch();
                 break;
