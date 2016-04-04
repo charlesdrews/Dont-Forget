@@ -5,9 +5,8 @@
     <string name="action_refresh">Refresh</string>
 
     <string name="notification_title">Don\'t forget…</string>
-    <string name="snooze">Snooze</string>
-    <string name="dismiss">Dismiss</string>
-    
+    <string name="notification_action_snooze">Snooze</string>
+
     <string name="authority">com.charlesdrews.dontforget.sync.StubProvider</string>
     <string name="account_type">dontforget.charlesdrews.com</string>
     <string name="account">default_account</string>

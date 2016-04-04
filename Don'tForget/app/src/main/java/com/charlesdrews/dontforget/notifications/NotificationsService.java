@@ -19,7 +19,6 @@ public class NotificationsService extends IntentService {
     private static final String TAG = NotificationsService.class.getSimpleName();
 
     public static final String ACTION_SNOOZE = "actionSnooze";
-    public static final String ACTION_DISMISS = "actionDismiss";
 
     public NotificationsService() {
         super(TAG);
@@ -36,9 +35,6 @@ public class NotificationsService extends IntentService {
         if (action != null && action.equals(ACTION_SNOOZE)) {
             Log.d(TAG, "onHandleIntent: action snooze");
             //TODO
-        } else if (action != null && action.equals(ACTION_DISMISS)) {
-            Log.d(TAG, "onHandleIntent: action dismiss");
-            //TODO
         }
 
         // make sure notification type was passed in the intent
@@ -48,20 +44,16 @@ public class NotificationsService extends IntentService {
             return;
         }
 
-        // create intent to open MainActivity when notification is clicked
+        // create intents for clicking thru to app and for snoozing
         Intent clickIntent = new Intent(this, MainActivity.class);
         clickIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent clickPendingIntent = PendingIntent
                 .getActivity(this, 0, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        // create snooze & dismiss actions
         Intent snoozeIntent = new Intent(this, NotificationsService.class);
         snoozeIntent.setAction(ACTION_SNOOZE);
         PendingIntent snoozePendingIntent = PendingIntent.getService(this, 0, snoozeIntent, 0);
 
-        Intent dismissIntent = new Intent(this, NotificationsService.class);
-        dismissIntent.setAction(ACTION_DISMISS);
-        PendingIntent dismissPendingIntent = PendingIntent.getService(this, 0, dismissIntent, 0);
 
         // build the notification
         Log.d(TAG, "onHandleIntent: creating notification for "
@@ -69,17 +61,17 @@ public class NotificationsService extends IntentService {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_notifications_active_grey_700_24dp)
                 .setContentTitle(getString(R.string.notification_title))
-                //TODO
+                //TODO - set text
                 .setContentText(TimeOfDay.getTimeOfDay(notificationType).toString())
                 .setDefaults(Notification.DEFAULT_ALL)
+                .setAutoCancel(true)
                 .setStyle(new NotificationCompat.BigTextStyle()
-                        //TODO
+                        //TODO - set text
                         .bigText("ealriug ergius aerhoxcug uihpsiudfhg aw3iuesydhfg flughdslg kse"))
                 .setContentIntent(clickPendingIntent)
                 .addAction(R.drawable.ic_snooze_grey_700_24dp,
-                        getString(R.string.snooze), snoozePendingIntent)
-                .addAction(R.drawable.ic_close_grey_700_24dp,
-                        getString(R.string.dismiss), dismissPendingIntent);
+                        getString(R.string.notification_action_snooze), snoozePendingIntent)
+                .setPriority(Notification.PRIORITY_MAX);
 
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         manager.notify(notificationType, builder.build());

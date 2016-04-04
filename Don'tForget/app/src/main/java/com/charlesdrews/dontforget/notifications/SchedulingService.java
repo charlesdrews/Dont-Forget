@@ -32,7 +32,7 @@ public class SchedulingService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        Log.d(TAG, "onHandleIntent: scheduling...");
+        Log.d(TAG, "onHandleIntent: scheduling notifications...");
 
         // initialize
         Realm realm = Realm.getInstance(new RealmConfiguration.Builder(this).build());
@@ -127,9 +127,9 @@ public class SchedulingService extends IntentService {
         // cancel any existing alarms to avoid duplicates and schedule new alarm
         mAlarmManager.cancel(pendingIntent);
 
-        //TODO - delete this after debugging
+        //TODO ****************************
         calendar.setTimeInMillis(System.currentTimeMillis());
-        calendar.add(Calendar.SECOND, 5);
+        calendar.add(Calendar.SECOND, 5 + 10 * notification.getNotificationId());
 
         mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
                 AlarmManager.INTERVAL_DAY, pendingIntent);
