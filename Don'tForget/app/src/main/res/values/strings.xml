@@ -11,6 +11,34 @@
     <string name="account_type">dontforget.charlesdrews.com</string>
     <string name="account">default_account</string>
 
+    <string name="pref_title_notifications_category">Notifications</string>
+    <string name="pref_key_notifications_category">pref_key_notifications_category</string>
+    <string name="pref_title_notifications_enabled">Show reminder notifications</string>
+    <string name="pref_key_notifications_enabled">pref_key_notifications_enabled</string>
+    <string name="pref_key_notifications_days">pref_key_notifications_days</string>
+    <string name="pref_title_notifications_days">Days</string>
+    <string-array name="notification_days">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+    <string name="pref_title_notification_times">Notification Times</string>
+    <string name="pref_key_notification_times">pref_key_notification_times</string>
+    <string name="pref_title_notification_times_category">Notification Times</string>
+    <string name="pref_key_notification_times_category">pref_key_notification_times_category</string>
+    <string name="pref_title_notification_before_work">Before work</string>
+    <string name="pref_key_notification_before_work">pref_key_notification_before_work</string>
+    <string name="pref_title_notification_lunchtime">Lunchtime</string>
+    <string name="pref_key_notification_lunchtime">pref_key_notification_lunchtime</string>
+    <string name="pref_title_notification_on_the_way_home">On the way home</string>
+    <string name="pref_key_notification_on_the_way_home">pref_key_notification_on_the_way_home</string>
+    <string name="pref_title_notification_evening">Evening</string>
+    <string name="pref_key_notification_evening">pref_key_notification_evening</string>
+
     <string name="pref_title_weather_category">Weather</string>
     <string name="pref_key_weather_category">pref_key_weather_category</string>
     <string name="pref_title_weather_geo">Use device location (GPS)</string>
@@ -25,6 +53,10 @@
     <string-array name="weather_units">
         <item>@string/weather_default_unit</item>
         <item>Metric</item>
+    </string-array>
+    <string-array name="weather_unit_labels">
+        <item>Fahrenheit</item>
+        <item>Celsius</item>
     </string-array>
 
     <string name="weather_last_sync_time_key">weather_last_sync_time_key</string>

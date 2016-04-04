@@ -1,6 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory
+        android:title="@string/pref_title_notifications_category"
+        android:key="@string/pref_key_notifications_category">
+        <SwitchPreference
+            android:title="@string/pref_title_notifications_enabled"
+            android:key="@string/pref_key_notifications_enabled"
+            android:defaultValue="true" />
+
+        <MultiSelectListPreference
+            android:title="@string/pref_title_notifications_days"
+            android:key="@string/pref_key_notifications_days"
+            android:entries="@array/notification_days"
+            android:entryValues="@array/notification_days"
+            android:defaultValue="@array/notification_days"
+            android:dependency="@string/pref_key_notifications_enabled" />
+
+        <PreferenceScreen
+            android:title="@string/pref_title_notification_times"
+            android:key="@string/pref_key_notification_times"
+            android:dependency="@string/pref_key_notifications_enabled">
+            <PreferenceCategory
+                android:title="@string/pref_title_notification_times_category"
+                android:key="@string/pref_key_notification_times_category">
+                <com.charlesdrews.dontforget.settings.TimePickerPreference
+                    android:title="@string/pref_title_notification_before_work"
+                    android:key="@string/pref_key_notification_before_work" />
+
+                <com.charlesdrews.dontforget.settings.TimePickerPreference
+                    android:title="@string/pref_title_notification_lunchtime"
+                    android:key="@string/pref_key_notification_lunchtime" />
+
+                <com.charlesdrews.dontforget.settings.TimePickerPreference
+                    android:title="@string/pref_title_notification_on_the_way_home"
+                    android:key="@string/pref_key_notification_on_the_way_home" />
+
+                <com.charlesdrews.dontforget.settings.TimePickerPreference
+                    android:title="@string/pref_title_notification_evening"
+                    android:key="@string/pref_key_notification_evening" />
+            </PreferenceCategory>
+        </PreferenceScreen>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:title="@string/pref_title_weather_category"
         android:key="@string/pref_key_weather_category">
         <SwitchPreference
@@ -20,7 +62,7 @@
             android:key="@string/pref_key_weather_units"
             android:summary="%s"
             android:dialogTitle="@string/weather_units_list_pref_title"
-            android:entries="@array/weather_units"
+            android:entries="@array/weather_unit_labels"
             android:entryValues="@array/weather_units"
             android:defaultValue="@string/weather_default_unit" />
     </PreferenceCategory>

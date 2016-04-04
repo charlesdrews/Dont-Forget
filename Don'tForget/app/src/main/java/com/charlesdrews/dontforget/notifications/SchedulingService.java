@@ -4,6 +4,7 @@ import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.os.Build;
 import android.util.Log;
 
 import com.charlesdrews.dontforget.notifications.model.NotificationTimeRealm;
@@ -127,11 +128,15 @@ public class SchedulingService extends IntentService {
         // cancel any existing alarms to avoid duplicates and schedule new alarm
         mAlarmManager.cancel(pendingIntent);
 
+        /*
         //TODO ****************************
         calendar.setTimeInMillis(System.currentTimeMillis());
         calendar.add(Calendar.SECOND, 5 + 10 * notification.getNotificationId());
+        */
 
+        // it appears that AlarmManager.INTERVAL_DAY is only recognized by setInexactRepeating()
+        long interval = 24L * 60L * 60L * 1000L;
         mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
-                AlarmManager.INTERVAL_DAY, pendingIntent);
+                interval, pendingIntent);
     }
 }
