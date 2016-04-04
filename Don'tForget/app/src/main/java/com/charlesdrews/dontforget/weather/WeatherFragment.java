@@ -100,8 +100,8 @@ public class WeatherFragment extends Fragment implements
             mRealm = Realm.getDefaultInstance();
         }
 
-        mHourlyForecasts = mRealm.where(HourlyForecastRealm.class).findAllSorted("dateTime");
-        mDailyForecasts = mRealm.where(DailyForecastRealm.class).findAllSorted("date");
+        mHourlyForecasts = mRealm.where(HourlyForecastRealm.class).findAllSortedAsync("dateTime");
+        mDailyForecasts = mRealm.where(DailyForecastRealm.class).findAllSortedAsync("date");
 
         mHourlyAdapter = new HourlyRecyclerAdapter(getContext(), mHourlyForecasts, mUseMetric);
         mDailyAdapter = new DailyRecyclerAdapter(getContext(), mDailyForecasts, mUseMetric);
