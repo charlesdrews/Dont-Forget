@@ -42,12 +42,15 @@ public class TimePickerPreference extends DialogPreference {
             }
 
             String time = hour + ":" + minutes;
-            String timeAmPm = hour > 12 ? (hour - 12) + ":" + minutes + " pm" :
-                    hour + ":" + minutes + " am";
+
+            String hourSummary = hour > 12 ? String.valueOf(hour - 12) : String.valueOf(hour);
+            String minutesSummary = minutes < 10 ? "0" + minutes : String.valueOf(minutes);
+            String amPm = hour < 12 ? " am" : " pm";
+            String timeSummary = hourSummary + ":" + minutesSummary + amPm;
 
             if (callChangeListener(time)) {
                 persistString(time);
-                setSummary(timeAmPm);
+                setSummary(timeSummary);
             }
         }
     }

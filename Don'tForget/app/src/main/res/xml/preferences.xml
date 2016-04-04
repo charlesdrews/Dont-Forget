@@ -25,19 +25,23 @@
                 android:key="@string/pref_key_notification_times_category">
                 <com.charlesdrews.dontforget.settings.TimePickerPreference
                     android:title="@string/pref_title_notification_before_work"
-                    android:key="@string/pref_key_notification_before_work" />
+                    android:key="@string/pref_key_notification_before_work"
+                    android:defaultValue="@string/before_work_default_time" />
 
                 <com.charlesdrews.dontforget.settings.TimePickerPreference
                     android:title="@string/pref_title_notification_lunchtime"
-                    android:key="@string/pref_key_notification_lunchtime" />
+                    android:key="@string/pref_key_notification_lunchtime"
+                    android:defaultValue="@string/lunchtime_default_time" />
 
                 <com.charlesdrews.dontforget.settings.TimePickerPreference
                     android:title="@string/pref_title_notification_on_the_way_home"
-                    android:key="@string/pref_key_notification_on_the_way_home" />
+                    android:key="@string/pref_key_notification_on_the_way_home"
+                    android:defaultValue="@string/on_the_way_home_default_time" />
 
                 <com.charlesdrews.dontforget.settings.TimePickerPreference
                     android:title="@string/pref_title_notification_evening"
-                    android:key="@string/pref_key_notification_evening" />
+                    android:key="@string/pref_key_notification_evening"
+                    android:defaultValue="@string/evening_default_time" />
             </PreferenceCategory>
         </PreferenceScreen>
     </PreferenceCategory>

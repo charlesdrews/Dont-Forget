@@ -4,15 +4,17 @@ import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.PendingIntent;
 import android.content.Intent;
-import android.os.Build;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.charlesdrews.dontforget.notifications.model.NotificationTimeRealm;
+import com.charlesdrews.dontforget.R;
+//import com.charlesdrews.dontforget.notifications.model.NotificationTimeRealm;
 
 import java.util.Calendar;
 
-import io.realm.Realm;
-import io.realm.RealmConfiguration;
+//import io.realm.Realm;
+//import io.realm.RealmConfiguration;
 
 /**
  * Schedule the notifications service via alarm manager
@@ -22,6 +24,7 @@ public class SchedulingService extends IntentService {
     private static final String TAG = SchedulingService.class.getSimpleName();
     public static final String NOTIFICATION_TYPE_KEY = "notificationTypeKey";
 
+    private boolean mShowNotifications;
     private AlarmManager mAlarmManager;
 
     public SchedulingService() {
@@ -35,79 +38,54 @@ public class SchedulingService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         Log.d(TAG, "onHandleIntent: scheduling notifications...");
 
-        // initialize
-        Realm realm = Realm.getInstance(new RealmConfiguration.Builder(this).build());
-        mAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        // get notification times from shared prefs
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        // get notification times from db
-        NotificationTimeRealm beforeWork = realm.where(NotificationTimeRealm.class)
-                .equalTo("notificationId", TimeOfDay.BEFORE_WORK.getInt()).findFirst();
-        NotificationTimeRealm lunchtime = realm.where(NotificationTimeRealm.class)
-                .equalTo("notificationId", TimeOfDay.LUNCHTIME.getInt()).findFirst();
-        NotificationTimeRealm onTheWayHome = realm.where(NotificationTimeRealm.class)
-                .equalTo("notificationId", TimeOfDay.ON_THE_WAY_HOME.getInt()).findFirst();
-        NotificationTimeRealm evening = realm.where(NotificationTimeRealm.class)
-                .equalTo("notificationId", TimeOfDay.EVENING.getInt()).findFirst();
+        mShowNotifications = prefs.getBoolean(getString(R.string.pref_key_notifications_enabled), true);
 
-        // if any notifications are not set, use defaults
-        if (beforeWork == null) {
-            beforeWork = new NotificationTimeRealm();
-            beforeWork.setNotificationId(TimeOfDay.BEFORE_WORK.getInt());
-            beforeWork.setNotificationHour(8);
-            beforeWork.setNotificationMinutes(0);
-
-            realm.beginTransaction();
-            realm.copyToRealm(beforeWork);
-            realm.commitTransaction();
-        }
-        if (lunchtime == null) {
-            lunchtime = new NotificationTimeRealm();
-            lunchtime.setNotificationId(TimeOfDay.LUNCHTIME.getInt());
-            lunchtime.setNotificationHour(12);
-            lunchtime.setNotificationMinutes(0);
-
-            realm.beginTransaction();
-            realm.copyToRealm(lunchtime);
-            realm.commitTransaction();
-        }
-        if (onTheWayHome == null) {
-            onTheWayHome = new NotificationTimeRealm();
-            onTheWayHome.setNotificationId(TimeOfDay.ON_THE_WAY_HOME.getInt());
-            onTheWayHome.setNotificationHour(17); // 5 pm
-            onTheWayHome.setNotificationMinutes(0);
-
-            realm.beginTransaction();
-            realm.copyToRealm(onTheWayHome);
-            realm.commitTransaction();
-        }
-        if (evening == null) {
-            evening = new NotificationTimeRealm();
-            evening.setNotificationId(TimeOfDay.EVENING.getInt());
-            evening.setNotificationHour(19); // 7 pm
-            evening.setNotificationMinutes(0);
-
-            realm.beginTransaction();
-            realm.copyToRealm(evening);
-            realm.commitTransaction();
-        }
+        String beforeWork = prefs.getString(
+                getString(R.string.pref_key_notification_before_work),
+                getString(R.string.before_work_default_time)
+        );
+        String lunchtime = prefs.getString(
+                getString(R.string.pref_key_notification_lunchtime),
+                getString(R.string.lunchtime_default_time)
+        );
+        String onTheWayHome = prefs.getString(
+                getString(R.string.pref_key_notification_on_the_way_home),
+                getString(R.string.on_the_way_home_default_time)
+        );
+        String evening = prefs.getString(
+                getString(R.string.pref_key_notification_evening),
+                getString(R.string.evening_default_time)
+        );
 
         // set alarms for each notification
-        setAlarmForNotification(beforeWork);
-        setAlarmForNotification(lunchtime);
-        setAlarmForNotification(onTheWayHome);
-        setAlarmForNotification(evening);
+        mAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        setAlarmForNotification(TimeOfDay.BEFORE_WORK, beforeWork);
+        setAlarmForNotification(TimeOfDay.LUNCHTIME, lunchtime);
+        setAlarmForNotification(TimeOfDay.ON_THE_WAY_HOME, onTheWayHome);
+        setAlarmForNotification(TimeOfDay.EVENING, evening);
 
-        realm.close();
+        //realm.close();
     }
 
-    private void setAlarmForNotification(NotificationTimeRealm notification) {
+    private void setAlarmForNotification(TimeOfDay timeOfDay, String hourMinString) {
+        if (!hourMinString.matches("\\d+:\\d+")) {
+            throw new IllegalArgumentException("Illegal value for " + timeOfDay.toString() +
+                    " preference: " + hourMinString + "; must be h:m or h:mm");
+        }
+
+        String[] parts = hourMinString.split(":");
+        int hour = Integer.parseInt(parts[0]);
+        int minutes = Integer.parseInt(parts[1]);
 
         // create intent and pending intent - specify which notification time/type
         Intent intent = new Intent(this, NotificationsService.class);
-        intent.putExtra(NOTIFICATION_TYPE_KEY, notification.getNotificationId());
+        intent.putExtra(NOTIFICATION_TYPE_KEY, timeOfDay.getInt());
 
         // set an action so this intent will not be equivalent to those for other notification types
-        intent.setAction(TimeOfDay.getTimeOfDay(notification.getNotificationId()).toString());
+        intent.setAction(timeOfDay.toString());
         PendingIntent pendingIntent = PendingIntent.getService(this, 0, intent, 0);
 
         // compare each notification time to current time; if already past, set for tomorrow
@@ -116,27 +94,21 @@ public class SchedulingService extends IntentService {
         int currHour = calendar.get(Calendar.HOUR_OF_DAY); // 24 hr clock (Calendar.HOUR is 12 hr)
         int currMin = calendar.get(Calendar.MINUTE);
 
-        calendar.set(Calendar.HOUR_OF_DAY, notification.getNotificationHour());
-        calendar.set(Calendar.MINUTE, notification.getNotificationMinutes());
-        if (notification.getNotificationHour() < currHour ||
-                (notification.getNotificationHour() == currHour &&
-                        notification.getNotificationMinutes() < currMin)
-                ) {
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minutes);
+        if (hour < currHour || (hour == currHour && minutes < currMin) ) {
             calendar.add(Calendar.DATE, 1);
         }
 
-        // cancel any existing alarms to avoid duplicates and schedule new alarm
+        // cancel any existing alarms to avoid duplicates, then schedule new alarm
         mAlarmManager.cancel(pendingIntent);
 
-        /*
-        //TODO ****************************
-        calendar.setTimeInMillis(System.currentTimeMillis());
-        calendar.add(Calendar.SECOND, 5 + 10 * notification.getNotificationId());
-        */
-
-        // it appears that AlarmManager.INTERVAL_DAY is only recognized by setInexactRepeating()
-        long interval = 24L * 60L * 60L * 1000L;
-        mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
-                interval, pendingIntent);
+        // run cancel() either way, but only set new alarm if user enabled notifications
+        if (mShowNotifications) {
+            // it appears that AlarmManager.INTERVAL_DAY is only recognized by setInexactRepeating()
+            long interval = 24L * 60L * 60L * 1000L;
+            mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
+                    interval, pendingIntent);
+        }
     }
 }
