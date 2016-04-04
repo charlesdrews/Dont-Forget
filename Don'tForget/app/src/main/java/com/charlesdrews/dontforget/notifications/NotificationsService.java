@@ -21,6 +21,14 @@ public class NotificationsService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        Log.d(TAG, "onHandleIntent: notifying...");
+        int notificationType = intent.getIntExtra(SchedulingService.NOTIFICATION_TYPE_KEY, -1);
+        
+        if (notificationType == -1) {
+            Log.d(TAG, "onHandleIntent: notification type not passed to NotifactionService");
+            return;
+        }
+
+        Log.d(TAG, "onHandleIntent: creating notification for "
+                + TimeOfDay.getTimeOfDay(notificationType).toString());
     }
 }
