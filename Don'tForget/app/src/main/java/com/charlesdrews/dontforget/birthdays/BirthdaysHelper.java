@@ -232,7 +232,7 @@ public class BirthdaysHelper {
                     if (newToRealm) {
                         realm.copyToRealm(bday);
                     }
-                    Log.d(TAG, String.format("execute: saved %s %s", name, nextBday.toString()));
+                    //Log.d(TAG, String.format("execute: saved %s %s", name, nextBday.toString()));
                 }
             });
         }

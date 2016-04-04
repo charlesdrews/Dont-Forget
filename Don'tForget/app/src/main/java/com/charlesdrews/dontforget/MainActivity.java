@@ -22,6 +22,7 @@ import android.widget.ProgressBar;
 
 import com.charlesdrews.dontforget.birthdays.BirthdaysFragment;
 import com.charlesdrews.dontforget.birthdays.AddContactBirthday;
+import com.charlesdrews.dontforget.tasks.TaskFragment;
 import com.charlesdrews.dontforget.weather.WeatherFragment;
 
 public class MainActivity extends AppCompatActivity implements
@@ -101,14 +102,17 @@ public class MainActivity extends AppCompatActivity implements
         Fragment fragment = mAdapter.getActiveFragment(currentFragmentPosition);
         if (fragment != null) {
             switch (currentFragmentPosition) {
+
                 case MyFragmentPagerAdapter.WEATHER:
                     Log.d(TAG, "handleRefresh: weather");
                     ((WeatherFragment) fragment).startSync();
                     break;
+
                 case MyFragmentPagerAdapter.TASKS:
                     Log.d(TAG, "handleRefresh: tasks");
-                    //TODO ((TaskFragment) fragment).
+                    ((TaskFragment) fragment).refreshTasks();
                     break;
+
                 case MyFragmentPagerAdapter.BIRTHDAYS:
                     Log.d(TAG, "handleRefresh: birthdays");
                     ((BirthdaysFragment) fragment).syncContacts();

@@ -12,6 +12,7 @@
 
     <CheckBox
         android:id="@+id/birthday_checkbox"
+        android:button="@drawable/checkbox_selector"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
