@@ -26,12 +26,10 @@ public class StrikeThruTextView extends TextView {
     }
 
     public void addStrikeThru() {
-        Log.d(TAG, "addStrikeThru: add");
         this.setPaintFlags(this.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
     }
 
     public void removeStrikeThru() {
-        Log.d(TAG, "removeStrikeThru: remove");
         this.setPaintFlags(this.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
     }
 }

@@ -151,6 +151,7 @@ public class TaskFragment extends Fragment {
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("OK", null);
 
+        // set OK button on click listener after launching so it doesn't auto-dismiss
         final AlertDialog alertDialog = builder.create();
         alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
@@ -161,6 +162,7 @@ public class TaskFragment extends Fragment {
                     public void onClick(View v) {
                         if (editText.getText().toString().isEmpty()) {
                             editText.setError("Please enter a task");
+                            editText.requestFocus();
                         } else {
                             mRealm.beginTransaction();
                             TaskRealm task = mRealm.createObject(TaskRealm.class);

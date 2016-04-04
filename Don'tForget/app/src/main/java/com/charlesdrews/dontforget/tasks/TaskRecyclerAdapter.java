@@ -49,13 +49,14 @@ public class TaskRecyclerAdapter extends RecyclerView.Adapter<TaskRecyclerAdapte
         SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM d", Locale.US);
         holder.date.setText(sdf.format(task.getDate()));
 
+        holder.checkBox.setOnCheckedChangeListener(null);
+        holder.checkBox.setChecked(task.isCompleted());
+
         if (task.isCompleted()) {
-            holder.checkBox.setChecked(true);
             holder.taskText.addStrikeThru();
             holder.timeOfDay.addStrikeThru();
             holder.date.addStrikeThru();
         } else {
-            holder.checkBox.setChecked(false);
             holder.taskText.removeStrikeThru();
             holder.timeOfDay.removeStrikeThru();
             holder.date.removeStrikeThru();
@@ -64,18 +65,6 @@ public class TaskRecyclerAdapter extends RecyclerView.Adapter<TaskRecyclerAdapte
         holder.checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    Log.d(TAG, "onCheckedChanged: adding strike-thru");
-                    holder.taskText.addStrikeThru();
-                    holder.timeOfDay.addStrikeThru();
-                    holder.date.addStrikeThru();
-                } else {
-                    Log.d(TAG, "onCheckedChanged: removing strike-thru");
-                    holder.taskText.removeStrikeThru();
-                    holder.timeOfDay.removeStrikeThru();
-                    holder.date.removeStrikeThru();
-                }
-
                 Realm realm = Realm.getDefaultInstance();
                 realm.beginTransaction();
                 task.setCompleted(isChecked);
