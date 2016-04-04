@@ -131,8 +131,7 @@ public class SchedulingService extends IntentService {
         calendar.setTimeInMillis(System.currentTimeMillis());
         calendar.add(Calendar.SECOND, 5);
 
-        //TODO - set interval back to INTERVAL_DAY after debugging
         mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
-                60*1000, pendingIntent);
+                AlarmManager.INTERVAL_DAY, pendingIntent);
     }
 }
