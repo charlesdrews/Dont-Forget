@@ -148,7 +148,6 @@ public class WeatherFragment extends Fragment implements
     public void onResume() {
         super.onResume();
 
-        //TODO - is this even needed???
         // listen for data syncs
         getContext().getContentResolver().registerContentObserver(
                 Uri.parse(StubProvider.BASE_URI_STRING), true, mContentObserver);
@@ -170,6 +169,7 @@ public class WeatherFragment extends Fragment implements
     public void onPause() {
         super.onPause();
         getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+        ((MainActivity) getActivity()).stopProgressBar();
     }
 
     @Override

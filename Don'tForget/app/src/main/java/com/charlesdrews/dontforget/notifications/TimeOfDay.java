@@ -45,4 +45,7 @@ public enum TimeOfDay {
                 throw new IllegalArgumentException("intVal must be in the range [0,3] inclusive");
         }
     }
+
+    public static int getMin() { return 0; }
+    public static int getMax() { return 3; }
 }

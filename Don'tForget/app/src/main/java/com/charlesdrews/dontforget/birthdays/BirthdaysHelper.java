@@ -190,6 +190,7 @@ public class BirthdaysHelper {
         int birthdayColNum = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Event.START_DATE);
 
         Calendar today = Calendar.getInstance();
+        today.setTimeInMillis(System.currentTimeMillis());
         int currentYear = today.get(Calendar.YEAR);
         int currentMonth = today.get(Calendar.MONTH) + 1; // month is 0-based
         int currentDay = today.get(Calendar.DAY_OF_MONTH);

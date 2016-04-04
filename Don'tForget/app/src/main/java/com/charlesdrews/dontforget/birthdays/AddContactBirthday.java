@@ -101,6 +101,7 @@ public class AddContactBirthday {
         // set date of DatePicker to contact's birthday if known, else today
         String bday = BirthdaysHelper.getContactBirthdayByLookupKey(mContext, lookupKey);
         Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
         if (bday != null) {
             int[] bdayParts = BirthdaysHelper.getBdayParts(bday);
             if (bdayParts[0] == -1) { // birth year not known
