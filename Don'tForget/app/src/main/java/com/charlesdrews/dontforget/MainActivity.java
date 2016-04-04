@@ -22,6 +22,7 @@ import android.widget.ProgressBar;
 
 import com.charlesdrews.dontforget.birthdays.BirthdaysFragment;
 import com.charlesdrews.dontforget.birthdays.AddContactBirthday;
+import com.charlesdrews.dontforget.notifications.SchedulingService;
 import com.charlesdrews.dontforget.tasks.TaskFragment;
 import com.charlesdrews.dontforget.weather.WeatherFragment;
 
@@ -65,6 +66,8 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
+
+        scheduleNotifications();
     }
 
     @Override
@@ -265,5 +268,9 @@ public class MainActivity extends AppCompatActivity implements
             snackbarMessage = "Unable to update birthday for " + name;
         }
         Snackbar.make(mViewPager, snackbarMessage, Snackbar.LENGTH_LONG).show();
+    }
+
+    public void scheduleNotifications() {
+        startService(new Intent(this, SchedulingService.class));
     }
 }

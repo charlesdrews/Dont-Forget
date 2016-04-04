@@ -58,6 +58,11 @@
                 android:resource="@xml/syncadapter" />
         </service>
 
+        <service android:name=".notifications.NotificationsService"
+            android:exported="false" />
+
+        <service android:name=".notifications.SchedulingService"
+            android:exported="false" />
     </application>
 
 </manifest>

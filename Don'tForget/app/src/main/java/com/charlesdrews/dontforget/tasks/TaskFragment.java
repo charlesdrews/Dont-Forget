@@ -130,6 +130,7 @@ public class TaskFragment extends Fragment {
         String[] days = new String[14];
         SimpleDateFormat sdf = new SimpleDateFormat("EEE M/d", Locale.US);
         Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
         for (int i = 0; i < 14; i++) {
             days[i] = sdf.format(calendar.getTime());
             calendar.add(Calendar.DATE, 1);
@@ -168,6 +169,7 @@ public class TaskFragment extends Fragment {
                             TaskRealm task = mRealm.createObject(TaskRealm.class);
 
                             Calendar cal = Calendar.getInstance();
+                            cal.setTimeInMillis(System.currentTimeMillis());
                             cal.add(Calendar.DATE, dayPicker.getValue());
                             task.setDate(cal.getTime());
 

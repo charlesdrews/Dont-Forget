@@ -170,6 +170,7 @@ public class WeatherFragment extends Fragment implements
     public void onPause() {
         super.onPause();
         getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+        ((MainActivity) getActivity()).stopProgressBar();
     }
 
     @Override
