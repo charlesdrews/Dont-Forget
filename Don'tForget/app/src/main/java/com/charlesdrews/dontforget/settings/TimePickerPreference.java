@@ -46,6 +46,7 @@ public class TimePickerPreference extends DialogPreference {
             String hourSummary = hour > 12 ? String.valueOf(hour - 12) : String.valueOf(hour);
             String minutesSummary = minutes < 10 ? "0" + minutes : String.valueOf(minutes);
             String amPm = hour < 12 ? " am" : " pm";
+            hourSummary = (hour == 0) ? "12" : hourSummary;
             String timeSummary = hourSummary + ":" + minutesSummary + amPm;
 
             if (callChangeListener(time)) {

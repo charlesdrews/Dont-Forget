@@ -12,7 +12,6 @@ import android.util.Log;
 
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.weather.model.CurrentConditionsRealm;
-import com.charlesdrews.dontforget.weather.model.DailyForecast;
 import com.charlesdrews.dontforget.weather.model.DailyForecastRealm;
 import com.charlesdrews.dontforget.weather.model.ForecastDay;
 import com.charlesdrews.dontforget.weather.model.HourlyForecastRealm;
@@ -20,12 +19,10 @@ import com.charlesdrews.dontforget.weather.model.WeatherResponse;
 import com.charlesdrews.dontforget.weather.retrofit.WeatherHelper;
 import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
-import io.realm.RealmResults;
 
 /**
  * Call WeatherUnderground API, save data in Realm db, notify content resolver

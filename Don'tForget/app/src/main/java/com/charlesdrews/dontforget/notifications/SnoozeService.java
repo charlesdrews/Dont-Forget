@@ -2,13 +2,16 @@ package com.charlesdrews.dontforget.notifications;
 
 import android.app.AlarmManager;
 import android.app.IntentService;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.Calendar;
 
 /**
+ * Allow notifications to be snoozed
  * Created by charlie on 4/4/16.
  */
 public class SnoozeService extends IntentService {
@@ -33,6 +36,15 @@ public class SnoozeService extends IntentService {
         if (notificationType == -1) {
             return; // cannot relaunch notification with invalid type
         }
+
+        // dismiss the notification that brought us here
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        manager.cancel(notificationType);
+        Toast.makeText(
+                SnoozeService.this,
+                String.format("Snoozing for %d minutes", SNOOZE_MINUTES),
+                Toast.LENGTH_SHORT)
+                .show();
 
         // create intent and pending intent - specify which notification time/type
         Intent snoozeIntent = new Intent(this, NotificationsService.class);

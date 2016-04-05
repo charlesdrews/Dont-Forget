@@ -35,10 +35,10 @@ public class NotificationsService extends IntentService {
     private static final String TAG = NotificationsService.class.getSimpleName();
 
     public static final String ACTION_SNOOZE = "actionSnooze";
-    private static final int UMBRELLA_THRESHOLD = 20; // 20% chance of rain
 
-    private Date mNow;
+    private SharedPreferences mPrefs;
     private Realm mRealm;
+    private Date mNow;
 
     public NotificationsService() {
         super(TAG);
@@ -50,6 +50,7 @@ public class NotificationsService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         mNow = new Date(System.currentTimeMillis());
 
         String action = intent.getAction();
@@ -71,10 +72,13 @@ public class NotificationsService extends IntentService {
         PendingIntent clickPendingIntent = PendingIntent
                 .getActivity(this, 0, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Intent snoozeIntent = new Intent(this, NotificationsService.class);
+        /* this isn't working
+        Intent snoozeIntent = new Intent(this, SnoozeService.class);
         snoozeIntent.putExtra(SchedulingService.NOTIFICATION_TYPE_KEY, notificationType);
         snoozeIntent.setAction(ACTION_SNOOZE);
-        PendingIntent snoozePendingIntent = PendingIntent.getService(this, 0, snoozeIntent, 0);
+        PendingIntent snoozePendingIntent = PendingIntent
+                .getService(this, 0, snoozeIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        */
 
         // get notification message text - helper methods use Realm
         mRealm = Realm.getInstance(new RealmConfiguration.Builder(this).build());
@@ -87,12 +91,16 @@ public class NotificationsService extends IntentService {
         StringBuilder messageBuilder = new StringBuilder();
         messageBuilder.append(weatherText);
         if (taskText.length() > 0) {
-            messageBuilder.append("\nTasks due: ");
-            messageBuilder.append(taskText);
+            messageBuilder.append("\n\n")
+                    .append(Html.fromHtml("&#9745;").toString()) // checkbox
+                    .append(" ")
+                    .append(taskText);
         }
         if (birthdayText.length() >0) {
-            messageBuilder.append("\nBirthdays today: ");
-            messageBuilder.append(birthdayText);
+            messageBuilder.append("\n\n")
+                    .append(Html.fromHtml("&#127874;").toString()) // birthday cake
+                    .append(" ")
+                    .append(birthdayText);
         }
         String message = messageBuilder.toString();
 
@@ -100,15 +108,15 @@ public class NotificationsService extends IntentService {
         Log.d(TAG, "onHandleIntent: creating notification for "
                 + TimeOfDay.getTimeOfDay(notificationType).toString());
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-                .setSmallIcon(R.drawable.ic_notifications_active_grey_700_24dp)
+                .setSmallIcon(R.drawable.ribbon_white)
                 .setContentTitle(getString(R.string.notification_title))
                 .setContentText(message)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                 .setDefaults(Notification.DEFAULT_ALL)
                 .setAutoCancel(true)
                 .setContentIntent(clickPendingIntent)
-                .addAction(R.drawable.ic_snooze_grey_700_24dp,
-                        getString(R.string.notification_action_snooze), snoozePendingIntent)
+//                .addAction(R.drawable.ic_snooze_grey_700_24dp,
+//                        getString(R.string.notification_action_snooze), snoozePendingIntent)
                 .setPriority(Notification.PRIORITY_MAX);
 
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -118,10 +126,8 @@ public class NotificationsService extends IntentService {
     @Override
     public void onDestroy() {
         super.onDestroy();
-
-        if (mRealm != null && !mRealm.isClosed()) {
-            mRealm.close();
-        }
+        //mRealm.close();
+        // I hate to leak memory, but this close() causes a lot of Realm "incorrect thread" errors
     }
 
     /**
@@ -135,9 +141,9 @@ public class NotificationsService extends IntentService {
         // grab weather data from db
         CurrentConditionsRealm current = mRealm.where(CurrentConditionsRealm.class).findFirst();
         RealmResults<HourlyForecastRealm> hourlyForecasts = mRealm.where(HourlyForecastRealm.class)
-                .findAllSortedAsync("dateTime");
+                .findAllSorted("dateTime");
         RealmResults<DailyForecastRealm> dailyForecasts = mRealm.where(DailyForecastRealm.class)
-                .findAllSortedAsync("date");
+                .findAllSorted("date");
 
         // check if data present
         if (current == null || hourlyForecasts == null || hourlyForecasts.size() == 0 ||
@@ -157,8 +163,7 @@ public class NotificationsService extends IntentService {
         }
 
         // get weather unit preference
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-        String weatherUnits = pref.getString(getString(R.string.pref_key_weather_units),
+        String weatherUnits = mPrefs.getString(getString(R.string.pref_key_weather_units),
                 getString(R.string.weather_default_unit));
         boolean useMetric = "Metric".equals(weatherUnits);
 
@@ -187,25 +192,17 @@ public class NotificationsService extends IntentService {
         int probPrecipTomorrow = tomorrow.getProbOfPrecip();
 
         String precipToday;
-        if (probPrecipToday >= 20) {
-            if (today.getSnowInches() > 0.0 || today.getConditionDesc().toLowerCase().contains("snow")) {
-                precipToday = Html.fromHtml("&#10052;").toString() + probPrecipToday + "% | "; // snowflake
-            } else {
-                precipToday = Html.fromHtml("&#128167;").toString() + probPrecipToday + "% | "; // droplet
-            }
+        if (today.getSnowInches() > 0.0 || today.getConditionDesc().toLowerCase().contains("snow")) {
+            precipToday = Html.fromHtml("&#10052;").toString() + probPrecipToday + "% | "; // snowflake
         } else {
-            precipToday = "";
+            precipToday = Html.fromHtml("&#128167;").toString() + probPrecipToday + "% | "; // droplet
         }
 
         String precipTomorrow;
-        if (probPrecipTomorrow >= 20) {
-            if (tomorrow.getSnowInches() > 0.0 || tomorrow.getConditionDesc().toLowerCase().contains("snow")) {
-                precipTomorrow = Html.fromHtml("&#10052;").toString() + probPrecipTomorrow + "% | "; // snowflake
-            } else {
-                precipTomorrow = Html.fromHtml("&#128167;").toString() + probPrecipTomorrow + "% | "; // droplet
-            }
+        if (tomorrow.getSnowInches() > 0.0 || tomorrow.getConditionDesc().toLowerCase().contains("snow")) {
+            precipTomorrow = Html.fromHtml("&#10052;").toString() + probPrecipTomorrow + "% | "; // snowflake
         } else {
-            precipTomorrow = "";
+            precipTomorrow = Html.fromHtml("&#128167;").toString() + probPrecipTomorrow + "% | "; // droplet
         }
 
         if (notificationType == TimeOfDay.BEFORE_WORK.getInt() ||
@@ -224,7 +221,7 @@ public class NotificationsService extends IntentService {
     private String getTaskText(int notificationType) {
         // grab sorted task list
         RealmResults<TaskRealm> tasks = mRealm.where(TaskRealm.class).equalTo("completed", false)
-                .findAllSortedAsync("date", Sort.ASCENDING, "timeOfDay", Sort.ASCENDING);
+                .findAllSorted("date", Sort.ASCENDING, "timeOfDay", Sort.ASCENDING);
 
         // scan thru tasks, include any w/ past or current date & time
         StringBuilder builder = new StringBuilder();
@@ -236,7 +233,7 @@ public class NotificationsService extends IntentService {
 
             if (taskDate.before(mNow) || (isToday && taskTimeOfDay <= notificationType)) {
                 if (builder.length() > 0) {
-                    builder.append(", ");
+                    builder.append(" | ");
                 }
                 builder.append(task.getTaskText());
             } else if (taskDate.after(mNow) || (isToday && taskTimeOfDay > notificationType)) {
@@ -255,7 +252,7 @@ public class NotificationsService extends IntentService {
     private String getBirthdayText() {
         // grab sorted birthday list
         RealmResults<BirthdayRealm> birthdays = mRealm.where(BirthdayRealm.class)
-                .findAllSortedAsync("nextBirthday");
+                .equalTo("necessaryToNotify", true).findAllSorted("nextBirthday");
 
         // scan thru birthdays, include any matching today
         StringBuilder builder = new StringBuilder();
@@ -268,7 +265,11 @@ public class NotificationsService extends IntentService {
                 }
                 builder.append(birthday.getName());
                 if (birthday.getYearOfBirth() > 0) {
-                    builder.append(" (" + birthday.getYearOfBirth() + ")");
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTimeInMillis(System.currentTimeMillis());
+                    int currYear = calendar.get(Calendar.YEAR);
+                    int age = currYear - birthday.getYearOfBirth();
+                    builder.append(" (").append(String.valueOf(age)).append(")");
                 }
             } else if (birthday.getNextBirthday().after(mNow)) {
                 // stop once you get past today
