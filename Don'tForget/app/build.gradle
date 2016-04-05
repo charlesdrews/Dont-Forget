@@ -2,9 +2,16 @@ apply plugin: 'com.android.application'
 apply plugin: 'realm-android'
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'CharliesAndroidKey'
+            keyPassword 'E$HwysUJaMYhD%n!beS7V%*Y&mb!wdCT'
+            storeFile file('/Users/charlie/Dropbox/Charlie/Backup/keystores/android.jks')
+            storePassword 'E$HwysUJaMYhD%n!beS7V%*Y&mb!wdCT'
+        }
+    }
     compileSdkVersion 23
     buildToolsVersion '23.0.3'
-
     defaultConfig {
         applicationId "com.charlesdrews.dontforget"
         minSdkVersion 16
@@ -17,6 +24,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
         }
     }
 }
