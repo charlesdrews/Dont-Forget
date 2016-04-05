@@ -198,7 +198,7 @@ public class WeatherFragment extends Fragment implements
         if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "onConnected: permission NOT granted; starting request for permission");
-            ((MainActivity) getActivity()).stopProgressBar();
+            //((MainActivity) getActivity()).stopProgressBar();
             ActivityCompat.requestPermissions(
                     getActivity(),
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -285,7 +285,7 @@ public class WeatherFragment extends Fragment implements
             ImageView icon = (ImageView) mRootView.findViewById(R.id.current_icon);
             RotateAnimation anim = new RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f,
                     Animation.RELATIVE_TO_SELF, 0.5f);
-            anim.setDuration(250);
+            anim.setDuration(500);
             Picasso.with(getContext()).load(currentConditions.getIconUrl()).into(icon);
             icon.startAnimation(anim);
 

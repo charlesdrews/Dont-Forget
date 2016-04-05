@@ -200,22 +200,11 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onPageSelected(int position) {
-        Log.d(TAG, "onPageSelected: " + position);
-
-        /*
-        //TODO - this doesn't work
-        View fragRootView = mAdapter.getActiveFragment(position).getView();
-        if (fragRootView != null && fragRootView instanceof ScrollView) {
-            Log.d(TAG, "onPageSelected: trying to scroll");
-            ((ScrollView) fragRootView).smoothScrollTo(0, 0);
-        }
-        */
-
         if (position == MyFragmentPagerAdapter.WEATHER) {
             // Fade out button if weather fragment selected
             mFab.animate()
                     .alpha(0f)
-                    .setDuration(250)
+                    .setDuration(500)
                     .setListener(new AnimatorListenerAdapter() {
                         @Override
                         public void onAnimationEnd(Animator animation) {
@@ -241,12 +230,12 @@ public class MainActivity extends AppCompatActivity implements
     public void startProgressBar() {
         mProgressBar.setAlpha(0f);
         mProgressBar.setVisibility(View.VISIBLE);
-        mProgressBar.animate().alpha(1f).setDuration(500);
+        mProgressBar.animate().alpha(1f).setDuration(1000);
     }
 
     @Override
     public void stopProgressBar() {
-        mProgressBar.animate().alpha(0f).setDuration(500)
+        mProgressBar.animate().alpha(0f).setDuration(1000)
                 .setListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
