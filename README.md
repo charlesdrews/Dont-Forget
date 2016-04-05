@@ -42,6 +42,6 @@ Regarding unsolved problems, I don't think there are any bugs, per se, but you m
 
 ### Links
 * [Trello board](https://trello.com/b/6LysxRTr/project-4) - James & Drew were both added to the board
-* [Play Store](https://play.google.com/store/apps) - approval pending
+* [Play Store](https://play.google.com/store/apps/details?id=com.charlesdrews.dontforget) - approval pending
 
  
