@@ -58,8 +58,9 @@ public class WeatherFragment extends Fragment implements
         LocationListener {
 
     private static final String TAG = WeatherFragment.class.getSimpleName();
-    private static final long SYNC_THRESHOLD_IN_MINUTES = 15;
+    private static final long SYNC_THRESHOLD_IN_MINUTES = 30;
     private static final long SYNC_THRESHOLD_IN_MILLIS = SYNC_THRESHOLD_IN_MINUTES * 60 * 1000;
+    public static final String LAST_LOCATION_PREF_KEY = "lastLocationPrefKey";
 
     private SharedPreferences mPreferences;
     private boolean mUseMetric;
@@ -198,7 +199,7 @@ public class WeatherFragment extends Fragment implements
         if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "onConnected: permission NOT granted; starting request for permission");
-            ((MainActivity) getActivity()).stopProgressBar();
+            //((MainActivity) getActivity()).stopProgressBar();
             ActivityCompat.requestPermissions(
                     getActivity(),
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -213,6 +214,7 @@ public class WeatherFragment extends Fragment implements
         if (mLastLocation != null) {
             Log.d(TAG, "onConnected: last location retrieved successfully");
             requestWeatherSync(getQueryStringFromLocation(mLastLocation));
+            saveLastLocationToSharedPrefs(mLastLocation);
         } else {
             // if location not yet available, set up a location request & trigger sync from listener
             Log.d(TAG, "onConnected: last location not available; launching a location request");
@@ -250,6 +252,7 @@ public class WeatherFragment extends Fragment implements
         Log.d(TAG, "onLocationChanged: location rec'd");
         LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
         mLastLocation = location;
+        saveLastLocationToSharedPrefs(mLastLocation);
         requestWeatherSync(getQueryStringFromLocation(location));
     }
 
@@ -285,7 +288,7 @@ public class WeatherFragment extends Fragment implements
             ImageView icon = (ImageView) mRootView.findViewById(R.id.current_icon);
             RotateAnimation anim = new RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f,
                     Animation.RELATIVE_TO_SELF, 0.5f);
-            anim.setDuration(250);
+            anim.setDuration(500);
             Picasso.with(getContext()).load(currentConditions.getIconUrl()).into(icon);
             icon.startAnimation(anim);
 
@@ -351,6 +354,15 @@ public class WeatherFragment extends Fragment implements
 
     private String getQueryStringFromLocation(Location location) {
         return location.getLatitude() + "," + location.getLongitude();
+    }
+
+    private void saveLastLocationToSharedPrefs(Location location) {
+        if (location == null) {
+            mPreferences.edit().putString(LAST_LOCATION_PREF_KEY, "").commit();
+        } else {
+            mPreferences.edit().putString(LAST_LOCATION_PREF_KEY, getQueryStringFromLocation(location))
+                    .commit();
+        }
     }
 
     private void requestWeatherSync(String locationQuery) {

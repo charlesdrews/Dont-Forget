@@ -66,6 +66,7 @@ public class TaskFragment extends Fragment {
             public void onChange() {
                 Log.d(TAG, "onChange: mTasks changed");
                 if (mTasks.isEmpty()) {
+                    /*
                     mRealm.beginTransaction();
                     TaskRealm firstTask = mRealm.createObject(TaskRealm.class);
                     firstTask.setDate(new Date());
@@ -74,6 +75,7 @@ public class TaskFragment extends Fragment {
                     firstTask.setCompleted(false);
                     firstTask.setVisible(true);
                     mRealm.commitTransaction();
+                    */
                 }
                 mAdapter.notifyDataSetChanged();
             }
