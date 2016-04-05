@@ -18,4 +18,24 @@ Birthday reminders connect seamlessly to your Google Contacts and make sure you 
 The app provides autocomplete suggestions of your contacts' names when searching for a contact to update a birthday. Birthdays can be entered with or without a year, simply by checking or unchecking the "include year" box on the birthday input screen. If a year is not provided, the contact's age is gracefully omitted from notifications and the birthdays screen.
 
 <img src="notification.png" width="175" align="right" /><img src="images/settings.png" width="175" align="right" />
+
+#### Technical Details
+The three main screens - weather, tasks, and birthdays - are displayed via **Fragments** in a **ViewPager** and navigation is performed via swipe or by tapping the **TabLayout**. The floating action button belongs to the main activity, and fades in and out based on which fragment is active. Similarly, the on-click behavior of the floating action button and the refresh toolbar button vary automatically according to which fragment is active. There is also a settings screen which utilizes the **Preference widgets** provided by the Android SDK.
+
+This app uses two different APIs from [Weather Underground] (www.wunderground.com/weather/api/), the **weather data API**, and the **location autocomplete API**. Calls to the weather data API are made in a **Sync Adapter**, the results are parsed via **Retrofit**, and are then saved to a **Realm.io** database.
+
+When this is complete, the sync adapter uses the **Content Resolver** to notify the **Content Observer** listening in the UI thread. The UI thread then queries the database and updates views, using **Picasso** to populate the weather icons via url. Hourly and Daily weather forecast data are displayed in horizontally-scrolling **Recycler Views** within the vertically-scrolling weather fragment.
+
+The manual location entry feature in settings uses an **Async Task** to repeatedly call the autocomplete API and suggest matches. All Settings changes are persisted to **Shared Preferences**. This was accomplished by extending the **AutoCompleteTextView** class and including a 
+
+The task items are saved to the Realm database. New tasks are entered in an **Alert Dialog** which repurposes two **Number Picker** objects to select date and time of day. The four time of day options (before work, lunchtime, on the way home, and evening) are specified in a **Java Enum**. The preference widget to set the user preferences for these four times is an extension of the DialogPreference class using the TimePicker widget.
+
+Birthdays are gathered from the **Contacts Provider** in an Async Task and persisted to the Realm database along with user notification preference for each contact. Birthdays can be added/edited right in the app, again via the Contacts Provider. Searching through contacts is done via another extension of AutoCompleteTextView, and a customized DatePicker.
+
+Notifications are achieved via two **IntentService** classes. The first is a scheduler that uses the **Alarm Manager** to schedule executions of the second class - the notification service - according to the user's time of day preferences. The notification service gathers relevant data from Realm and launches Big Text Style notifications including only the items that are relevant at that date and time.
+
+#### Links
+* [Trello board](https://trello.com/b/6LysxRTr/project-4) - James & Drew were both added to the board
+* [Play Store](https://play.google.com/store/apps) - approval pending
+
  
