@@ -38,6 +38,7 @@ import com.charlesdrews.dontforget.sync.SyncAdapter;
 import com.charlesdrews.dontforget.weather.model.CurrentConditionsRealm;
 import com.charlesdrews.dontforget.weather.model.DailyForecastRealm;
 import com.charlesdrews.dontforget.weather.model.HourlyForecastRealm;
+import com.charlesdrews.dontforget.weather.model.LocationRealm;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -58,9 +59,14 @@ public class WeatherFragment extends Fragment implements
         LocationListener {
 
     private static final String TAG = WeatherFragment.class.getSimpleName();
+
     private static final long SYNC_THRESHOLD_IN_MINUTES = 30;
+    private static final long LOCATION_THRESHOLD_IN_MINUTES = 30;
+
     private static final long SYNC_THRESHOLD_IN_MILLIS = SYNC_THRESHOLD_IN_MINUTES * 60 * 1000;
-    public static final String LAST_LOCATION_PREF_KEY = "lastLocationPrefKey";
+    private static final long LOCATION_THRESHOLD_IN_MILLIS = LOCATION_THRESHOLD_IN_MINUTES * 60 * 1000;
+
+//    public static final String LAST_LOCATION_PREF_KEY = "lastLocationPrefKey";
 
     private SharedPreferences mPreferences;
     private boolean mUseMetric;
@@ -199,7 +205,6 @@ public class WeatherFragment extends Fragment implements
         if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "onConnected: permission NOT granted; starting request for permission");
-            //((MainActivity) getActivity()).stopProgressBar();
             ActivityCompat.requestPermissions(
                     getActivity(),
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -210,11 +215,15 @@ public class WeatherFragment extends Fragment implements
         Log.d(TAG, "onConnected: permission granted");
 
         // if location is available, request new sync using location data
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (mLastLocation != null) {
+//        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+//        if (mLastLocation != null) {
+        if (lastLocation != null) {
             Log.d(TAG, "onConnected: last location retrieved successfully");
-            requestWeatherSync(getQueryStringFromLocation(mLastLocation));
-            saveLastLocationToSharedPrefs(mLastLocation);
+//            requestWeatherSync(getQueryStringFromLocation(mLastLocation));
+//            saveLastLocationToDb(mLastLocation);
+            requestWeatherSync(getQueryStringFromLocation(lastLocation));
+            saveLastLocationToDb(lastLocation);
         } else {
             // if location not yet available, set up a location request & trigger sync from listener
             Log.d(TAG, "onConnected: last location not available; launching a location request");
@@ -251,9 +260,10 @@ public class WeatherFragment extends Fragment implements
     public void onLocationChanged(Location location) {
         Log.d(TAG, "onLocationChanged: location rec'd");
         LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-        mLastLocation = location;
-        saveLastLocationToSharedPrefs(mLastLocation);
+//        mLastLocation = location;
+//        saveLastLocationToDb(mLastLocation);
         requestWeatherSync(getQueryStringFromLocation(location));
+        saveLastLocationToDb(location);
     }
 
     private void updateCurrentConditionsCard() {
@@ -297,6 +307,7 @@ public class WeatherFragment extends Fragment implements
     }
 
     private boolean syncNeeded() {
+        //TODO - use Realm to store last sync time, not shared prefs
         long lastSyncTime = mPreferences.getLong(getString(R.string.weather_last_sync_time_key), -1);
 
         // return true if no last sync, or sync was not within threshold
@@ -307,6 +318,9 @@ public class WeatherFragment extends Fragment implements
     }
 
     public void startSync() {
+        //TODO - check if device has internet access
+
+        //TODO - move progress bar to fragment - use boolean to control?
         ((MainActivity) getActivity()).startProgressBar();
 
         // use device location or static location per user prefs
@@ -315,16 +329,24 @@ public class WeatherFragment extends Fragment implements
         if (okToUseDeviceLocation) {
             Log.d(TAG, "startSync: using geolocation");
 
-            // if already have location, use it
-            if (mLastLocation != null) {
-                Log.d(TAG, "startSync: already have location");
-                requestWeatherSync(getQueryStringFromLocation(mLastLocation));
-            } else if (mGoogleApiClient.isConnected()) {
-                // can't call connect() w/o disconnecting first, so call callback manually
-                onConnected(null);
+            // get last location from db
+            LocationRealm lastLocation = mRealm.where(LocationRealm.class).findFirst();
+
+            // if null, or if older than threshold, update location
+            if (locationUpdateNeeded(lastLocation)) {
+                Log.d(TAG, "startSync: location update needed");
+                if (mGoogleApiClient.isConnected()) {
+                    // can't call connect() w/o disconnecting first, so call callback manually
+                    onConnected(null);
+                } else {
+                    mGoogleApiClient.connect();
+                }
             } else {
-                mGoogleApiClient.connect();
+                // or if present and not too old, start sync
+                Log.d(TAG, "startSync: have usable location; requesting sync");
+                requestWeatherSync(lastLocation.getLocationString());
             }
+
         } else {
             // if user disabled geolocation in preferences, use static location, if set
             Log.d(TAG, "startSync: using static location");
@@ -356,13 +378,13 @@ public class WeatherFragment extends Fragment implements
         return location.getLatitude() + "," + location.getLongitude();
     }
 
-    private void saveLastLocationToSharedPrefs(Location location) {
-        if (location == null) {
-            mPreferences.edit().putString(LAST_LOCATION_PREF_KEY, "").commit();
-        } else {
-            mPreferences.edit().putString(LAST_LOCATION_PREF_KEY, getQueryStringFromLocation(location))
-                    .commit();
-        }
+    private void saveLastLocationToDb(Location lastLocation) {
+        mRealm.beginTransaction();
+        mRealm.clear(LocationRealm.class);
+        LocationRealm locationRealm = mRealm.createObject(LocationRealm.class);
+        locationRealm.setLocationString(getQueryStringFromLocation(lastLocation));
+        locationRealm.setLocationTimeInMillis(System.currentTimeMillis());
+        mRealm.commitTransaction();
     }
 
     private void requestWeatherSync(String locationQuery) {
@@ -372,6 +394,12 @@ public class WeatherFragment extends Fragment implements
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         settingsBundle.putString(SyncAdapter.LOCATION_QUERY_KEY, locationQuery);
         ContentResolver.requestSync(mAccount, getString(R.string.authority), settingsBundle);
+    }
+
+    private boolean locationUpdateNeeded(LocationRealm lastLocation) {
+        return lastLocation == null ||
+                (System.currentTimeMillis() - lastLocation.getLocationTimeInMillis()
+                        > LOCATION_THRESHOLD_IN_MILLIS);
     }
 
     private class WeatherContentObserver extends ContentObserver {
