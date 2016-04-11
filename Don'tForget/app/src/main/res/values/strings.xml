@@ -17,12 +17,16 @@
     <string name="no_internet_connection">No internet connection; try again later</string>
     <string name="error_retrieving_weather_data">Error retrieving weather data; try again later</string>
 
+    <string name="pref_key_suggest_updating_settings">pref_key_suggest_updating_settings</string>
+    <string name="suggestion_dialog_title">Customize settings</string>
+    <string name="suggestion_dialog_message">Please take a moment to customize your notification settings to fit your schedule.</string>
+
     <string name="pref_title_notifications_category">Notifications</string>
     <string name="pref_key_notifications_category">pref_key_notifications_category</string>
     <string name="pref_title_notifications_enabled">Show reminder notifications</string>
     <string name="pref_key_notifications_enabled">pref_key_notifications_enabled</string>
     <string name="pref_key_notifications_days">pref_key_notifications_days</string>
-    <string name="pref_title_notifications_days">Days</string>
+    <string name="pref_title_notifications_days">Days to receive notifications</string>
     <string-array name="notification_days">
         <item>Monday</item>
         <item>Tuesday</item>
@@ -32,7 +36,7 @@
         <item>Saturday</item>
         <item>Sunday</item>
     </string-array>
-    <string name="pref_title_notification_times">Notification Times</string>
+    <string name="pref_title_notification_times">Notification times</string>
     <string name="pref_key_notification_times">pref_key_notification_times</string>
     <string name="pref_title_notification_times_category">Notification Times</string>
     <string name="pref_key_notification_times_category">pref_key_notification_times_category</string>
@@ -48,6 +52,7 @@
     <string name="lunchtime_default_time">12:0</string>
     <string name="on_the_way_home_default_time">17:0</string>
     <string name="evening_default_time">19:0</string>
+    <string name="notification_prefs_updated">Notification preferences updated</string>
 
     <string name="pref_title_weather_category">Weather</string>
     <string name="pref_key_weather_category">pref_key_weather_category</string>

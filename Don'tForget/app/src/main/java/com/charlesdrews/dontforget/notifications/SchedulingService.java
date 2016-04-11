@@ -10,7 +10,11 @@ import android.util.Log;
 
 import com.charlesdrews.dontforget.R;
 
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * Schedule the notifications service via alarm manager
@@ -21,6 +25,7 @@ public class SchedulingService extends IntentService {
     public static final String NOTIFICATION_TYPE_KEY = "notificationTypeKey";
 
     private boolean mShowNotifications;
+    private Set<String> mDaysToNotify;
     private AlarmManager mAlarmManager;
 
     public SchedulingService() {
@@ -38,6 +43,11 @@ public class SchedulingService extends IntentService {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         mShowNotifications = prefs.getBoolean(getString(R.string.pref_key_notifications_enabled), true);
+        mDaysToNotify = prefs.getStringSet(
+                getString(R.string.pref_key_notifications_days),
+                new HashSet<>( // default value is all days of the week
+                        Arrays.asList(getResources().getStringArray(R.array.notification_days)))
+        );
 
         String beforeWork = prefs.getString(
                 getString(R.string.pref_key_notification_before_work),
@@ -94,11 +104,16 @@ public class SchedulingService extends IntentService {
             calendar.add(Calendar.DATE, 1);
         }
 
+        String dayOfWeek = calendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.US);
+
         // cancel any existing alarms to avoid duplicates, then schedule new alarm
         mAlarmManager.cancel(pendingIntent);
 
         // run cancel() either way, but only set new alarm if user enabled notifications
-        if (mShowNotifications) {
+        if (mShowNotifications && mDaysToNotify.contains(dayOfWeek)) {
+
+            Log.d(TAG, "setAlarmForNotification: setting " + timeOfDay.toString());
+
             // it appears that AlarmManager.INTERVAL_DAY is only recognized by setInexactRepeating()
             long interval = 24L * 60L * 60L * 1000L;
             mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
