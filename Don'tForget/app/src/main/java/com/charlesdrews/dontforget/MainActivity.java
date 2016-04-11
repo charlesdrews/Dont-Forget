@@ -31,7 +31,9 @@ import com.charlesdrews.dontforget.weather.WeatherFragment;
 
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener, ViewPager.OnPageChangeListener,
-        ProgressBarListener, AddContactBirthday.BirthdayUpdatedListener {
+//        ProgressBarListener,
+        AddContactBirthday.BirthdayUpdatedListener {
+
     private static final String TAG = "MainActivity";
     public static final int CONTACTS_PERMISSION_REQUEST_CODE = 123;
     public static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
@@ -217,6 +219,7 @@ public class MainActivity extends AppCompatActivity implements
     //==============================================================================================
     //========== Custom listener callback methods ==================================================
     //==============================================================================================
+    /*
     //TODO - have separate progress bars in each fragment
     @Override
     public void startProgressBar() {
@@ -236,20 +239,30 @@ public class MainActivity extends AppCompatActivity implements
                     }
                 });
     }
+    */
 
     @Override
-    public void onBirthdayUpdated(boolean success, String name) {
-        String snackbarMessage;
+    public void onBirthdayUpdated(boolean success, String name, boolean deleted) {
         mViewPager.setCurrentItem(MyFragmentPagerAdapter.BIRTHDAYS);
-        if (success) {
+        String snackbarMessage = null;
+
+        if (deleted && success) {
+            snackbarMessage = "Birthday deleted for " + name;
+
+        } else if (!deleted && success) {
             BirthdaysFragment fragment = (BirthdaysFragment) mAdapter
                     .getActiveFragment(MyFragmentPagerAdapter.BIRTHDAYS);
             fragment.syncContacts();
             snackbarMessage = "Birthday updated for " + name;
-        } else {
+
+        } else if (!deleted) {
             snackbarMessage = "Unable to update birthday for " + name;
         }
-        Snackbar.make(mViewPager, snackbarMessage, Snackbar.LENGTH_LONG).show();
+        // not concerned about unsuccessful delete; that's probably from a contact w/o a birthday
+
+        if (snackbarMessage != null && !snackbarMessage.isEmpty()) {
+            Snackbar.make(mViewPager, snackbarMessage, Snackbar.LENGTH_LONG).show();
+        }
     }
 
 
