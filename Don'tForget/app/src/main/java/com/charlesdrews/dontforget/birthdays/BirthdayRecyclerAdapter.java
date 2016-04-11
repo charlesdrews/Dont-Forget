@@ -48,6 +48,7 @@ public class BirthdayRecyclerAdapter
     public void onBindViewHolder(final BirthdayViewHolder holder, int position) {
         final BirthdayRealm bday = mData.get(position);
 
+        // set up notifications on/off checkbox
         holder.checkBox.setOnCheckedChangeListener(null); // disable any previous listener
         holder.checkBox.setChecked(bday.isNecessaryToNotify());
         holder.checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -61,10 +62,11 @@ public class BirthdayRecyclerAdapter
 
                 String message = "Birthday notifications " + (isChecked ? "ON" : "OFF") +
                         " for " + bday.getName();
-                Snackbar.make(mViewProvider.getViewFoSnackbar(), message, Snackbar.LENGTH_LONG).show();
+                Snackbar.make(mViewProvider.getViewForSnackbar(), message, Snackbar.LENGTH_LONG).show();
             }
         });
 
+        // populate text views
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d", Locale.US);
         String bdayString = sdf.format(bday.getNextBirthday());
         int birthYear = bday.getYearOfBirth();
@@ -79,10 +81,19 @@ public class BirthdayRecyclerAdapter
 
             int nextAge = yearOfNextBday - birthYear;
 
-            holder.nameAge.setText(String.format("%s (%d)", bday.getName(), nextAge));
+            holder.nameAge.setText(String.format(Locale.US, "%s (%d)", bday.getName(), nextAge));
             bdayString = bdayString + ", " + birthYear;
         }
         holder.date.setText(bdayString);
+
+        // set on click listener
+        holder.container.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AddContactBirthday dialog = new AddContactBirthday(mContext);
+                dialog.launchAddBirthday(bday.getLookupKey(), bday.getName());
+            }
+        });
     }
 
     @Override
@@ -91,11 +102,13 @@ public class BirthdayRecyclerAdapter
     }
 
     public class BirthdayViewHolder extends RecyclerView.ViewHolder {
+        View container;
         CheckBox checkBox;
         TextView nameAge, date;
 
         public BirthdayViewHolder(View itemView) {
             super(itemView);
+            container = itemView.findViewById(R.id.birthday_container);
             checkBox = (CheckBox) itemView.findViewById(R.id.birthday_checkbox);
             nameAge = (TextView) itemView.findViewById(R.id.birthday_name_age);
             date = (TextView) itemView.findViewById(R.id.birthday_date);
@@ -103,6 +116,6 @@ public class BirthdayRecyclerAdapter
     }
 
     public interface ProvidesViewForSnackbar {
-        View getViewFoSnackbar();
+        View getViewForSnackbar();
     }
 }

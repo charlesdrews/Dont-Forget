@@ -46,6 +46,7 @@ public class MyApplication extends Application {
                 // Migrate from version 0 to version 1:
                 //  - Add queryString & timeObtainedInMillis to CurrentConditionsRealm
                 //  - Create new LocationRealm object
+                //  - Add lookupKey to BirthdayRealm
                 if (oldVersion == 0) {
                     schema.get("CurrentConditionsRealm")
                             .addPrimaryKey("id")
@@ -55,6 +56,9 @@ public class MyApplication extends Application {
                             .addPrimaryKey("id")
                             .addField("locationString", String.class)
                             .addField("timeObtainedInMillis", long.class);
+
+                    schema.get("BirthdayRealm")
+                            .addField("lookupKey", String.class);
 
 //                    oldVersion++; // increment before handling additional migrations
                 }

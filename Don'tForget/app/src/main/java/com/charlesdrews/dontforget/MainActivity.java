@@ -42,6 +42,10 @@ public class MainActivity extends AppCompatActivity implements
     private FloatingActionButton mFab;
     private ProgressBar mProgressBar;
 
+
+    //==============================================================================================
+    //====== Activity lifecycle methods ============================================================
+    //==============================================================================================
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,57 +87,9 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void onBackPressed() {
-        int currTab = mViewPager.getCurrentItem();
-        if (currTab > 0) {
-            mViewPager.setCurrentItem(currTab - 1);
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_refresh:
-                handleRefresh(mViewPager.getCurrentItem());
-                break;
-            case R.id.action_settings:
-                startActivity(new Intent(this, SettingsActivity.class));
-                break;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-        return true;
-    }
-
-    private void handleRefresh(int currentFragmentPosition) {
-        Fragment fragment = mAdapter.getActiveFragment(currentFragmentPosition);
-        if (fragment != null) {
-            switch (currentFragmentPosition) {
-
-                case MyFragmentPagerAdapter.WEATHER:
-                    Log.d(TAG, "handleRefresh: weather");
-                    ((WeatherFragment) fragment).startSync(true);
-                    break;
-
-                case MyFragmentPagerAdapter.TASKS:
-                    Log.d(TAG, "handleRefresh: tasks");
-                    ((TaskFragment) fragment).refreshTasks();
-                    break;
-
-                case MyFragmentPagerAdapter.BIRTHDAYS:
-                    Log.d(TAG, "handleRefresh: birthdays");
-                    ((BirthdaysFragment) fragment).syncContacts();
-                    break;
-            }
-        }
     }
 
     @Override
@@ -169,7 +125,9 @@ public class MainActivity extends AppCompatActivity implements
                 } else {
 
                     // access device location -> denied
-                    mPreferences.edit().putBoolean(getString(R.string.pref_key_weather_use_device_location), false).commit();
+                    mPreferences.edit()
+                            .putBoolean(getString(R.string.pref_key_weather_use_device_location), false)
+                            .commit();
                     snackbarMessage = "Permission to use device location denied";
                 }
                 break;
@@ -180,31 +138,10 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.fab:
-                handleFabClick(mViewPager.getCurrentItem());
-                break;
-        }
-    }
 
-    private void handleFabClick(int currentFragmentPosition) {
-        switch (currentFragmentPosition) {
-
-            case MyFragmentPagerAdapter.TASKS:
-                TaskFragment fragment = (TaskFragment) mAdapter
-                        .getActiveFragment(MyFragmentPagerAdapter.TASKS);
-                fragment.addOrUpdateTask(null);
-                break;
-
-            case MyFragmentPagerAdapter.BIRTHDAYS:
-                AddContactBirthday dialog = new AddContactBirthday(this);
-                dialog.launchContactSearch();
-                break;
-        }
-    }
-
+    //==============================================================================================
+    //========== ViewPager listener callback methods ===============================================
+    //==============================================================================================
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
 
@@ -238,6 +175,48 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
+
+    //==============================================================================================
+    //========== Other standard listener callback methods ==========================================
+    //==============================================================================================
+    @Override
+    public void onBackPressed() {
+        int currTab = mViewPager.getCurrentItem();
+        if (currTab > 0) {
+            mViewPager.setCurrentItem(currTab - 1);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_refresh:
+                handleRefresh(mViewPager.getCurrentItem());
+                break;
+            case R.id.action_settings:
+                startActivity(new Intent(this, SettingsActivity.class));
+                break;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+        return true;
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.fab:
+                handleFabClick(mViewPager.getCurrentItem());
+                break;
+        }
+    }
+
+
+    //==============================================================================================
+    //========== Custom listener callback methods ==================================================
+    //==============================================================================================
     //TODO - have separate progress bars in each fragment
     @Override
     public void startProgressBar() {
@@ -272,6 +251,50 @@ public class MainActivity extends AppCompatActivity implements
         }
         Snackbar.make(mViewPager, snackbarMessage, Snackbar.LENGTH_LONG).show();
     }
+
+
+    //==============================================================================================
+    //========== Helper methods ====================================================================
+    //==============================================================================================
+    private void handleRefresh(int currentFragmentPosition) {
+        Fragment fragment = mAdapter.getActiveFragment(currentFragmentPosition);
+        if (fragment != null) {
+            switch (currentFragmentPosition) {
+
+                case MyFragmentPagerAdapter.WEATHER:
+                    Log.d(TAG, "handleRefresh: weather");
+                    ((WeatherFragment) fragment).startSync(true);
+                    break;
+
+                case MyFragmentPagerAdapter.TASKS:
+                    Log.d(TAG, "handleRefresh: tasks");
+                    ((TaskFragment) fragment).refreshTasks();
+                    break;
+
+                case MyFragmentPagerAdapter.BIRTHDAYS:
+                    Log.d(TAG, "handleRefresh: birthdays");
+                    ((BirthdaysFragment) fragment).syncContacts();
+                    break;
+            }
+        }
+    }
+
+    private void handleFabClick(int currentFragmentPosition) {
+        switch (currentFragmentPosition) {
+
+            case MyFragmentPagerAdapter.TASKS:
+                TaskFragment fragment = (TaskFragment) mAdapter
+                        .getActiveFragment(MyFragmentPagerAdapter.TASKS);
+                fragment.addOrUpdateTask(null);
+                break;
+
+            case MyFragmentPagerAdapter.BIRTHDAYS:
+                AddContactBirthday dialog = new AddContactBirthday(this);
+                dialog.launchContactSearch();
+                break;
+        }
+    }
+
 
     public void scheduleNotifications() {
         startService(new Intent(this, SchedulingService.class));

@@ -115,7 +115,7 @@ public class BirthdaysFragment extends Fragment
     }
 
     @Override
-    public View getViewFoSnackbar() {
+    public View getViewForSnackbar() {
         return mRootView;
     }
 
@@ -124,6 +124,7 @@ public class BirthdaysFragment extends Fragment
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            //TODO - move this to fragment
             ((MainActivity) getActivity()).startProgressBar();
         }
 
@@ -135,6 +136,7 @@ public class BirthdaysFragment extends Fragment
         @Override
         protected void onPostExecute(Boolean successful) {
             super.onPostExecute(successful);
+            //TODO - move this to fragment
             ((MainActivity) getActivity()).stopProgressBar();
         }
     }

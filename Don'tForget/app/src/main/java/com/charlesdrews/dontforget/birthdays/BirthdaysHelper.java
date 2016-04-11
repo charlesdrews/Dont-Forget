@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import io.realm.Realm;
-import io.realm.RealmConfiguration;
 
 /**
  * Provide static methods to retrieve birthdays from Google Contacts and save to Realm
@@ -34,7 +33,8 @@ public class BirthdaysHelper {
         if (cursor == null || cursor.getCount() == 0) {
             return false;
         }
-        saveBirthdaysToDb(cursor, context);
+//        saveBirthdaysToDb(cursor, context);
+        saveBirthdaysToDb(cursor);
         return true;
     }
 
@@ -43,6 +43,7 @@ public class BirthdaysHelper {
 
         String[] projection = new String[] {
                 ContactsContract.Data._ID,
+                ContactsContract.Contacts.LOOKUP_KEY,
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
                         ContactsContract.Data.DISPLAY_NAME_PRIMARY :
                         ContactsContract.Data.DISPLAY_NAME,
@@ -96,7 +97,10 @@ public class BirthdaysHelper {
         Cursor cursor = contentResolver.query(URI, projection, selection, selectionArgs, null);
 
         if (cursor != null && cursor.moveToFirst()) {
-            return cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Event.START_DATE));
+            String birthday = cursor.getString(
+                    cursor.getColumnIndex(ContactsContract.CommonDataKinds.Event.START_DATE));
+            cursor.close();
+            return birthday;
         }
         return null;
     }
@@ -115,7 +119,7 @@ public class BirthdaysHelper {
         String sel1 = ContactsContract.Contacts.LOOKUP_KEY + " = ?";
         String[] selArgs1 = new String[]{lookupKey};
         Cursor cur1 = contentResolver.query(URI, proj1, sel1, selArgs1, null);
-        long contactId = -1;
+        long contactId;
         if (cur1 != null && cur1.moveToFirst()) {
             Log.d(TAG, "updateBirthdayInContactProvider: got CONTACT_ID");
             contactId = cur1.getLong(0);
@@ -131,7 +135,7 @@ public class BirthdaysHelper {
         String sel2 = ContactsContract.CommonDataKinds.Event.CONTACT_ID + " = ?";
         String[] selArgs2 = new String[]{String.valueOf(contactId)};
         Cursor cur2 = contentResolver.query(URI, proj2, sel2, selArgs2, null);
-        long rawContactId = -1;
+        long rawContactId;
         if (cur2 != null && cur2.moveToFirst()) {
             Log.d(TAG, "updateBirthdayInContactProvider: got RAW_CONTACT_ID");
             rawContactId = cur2.getLong(0);
@@ -179,11 +183,13 @@ public class BirthdaysHelper {
         }
     }
 
-    private static void saveBirthdaysToDb(Cursor cursor, Context context) {
+//    private static void saveBirthdaysToDb(Cursor cursor, Context context) {
+    private static void saveBirthdaysToDb(Cursor cursor) {
         Log.d(TAG, "saveBirthdaysToDb: starting");
         Realm realm = Realm.getDefaultInstance();
 
         int idColNum = cursor.getColumnIndex(ContactsContract.Data.CONTACT_ID);
+        int lookupKeyColNum = cursor.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY);
         int nameColNum = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
                 cursor.getColumnIndex(ContactsContract.Data.DISPLAY_NAME_PRIMARY) :
                 cursor.getColumnIndex(ContactsContract.Data.DISPLAY_NAME);
@@ -213,6 +219,7 @@ public class BirthdaysHelper {
 
             final int id = cursor.getInt(idColNum);
             final String name = cursor.getString(nameColNum);
+            final String lookupKey = cursor.getString(lookupKeyColNum);
 
             realm.executeTransaction(new Realm.Transaction() {
                 @Override
@@ -227,13 +234,13 @@ public class BirthdaysHelper {
 
                     bday.setId(id);
                     bday.setName(name);
+                    bday.setLookupKey(lookupKey);
                     bday.setNextBirthday(nextBday);
                     bday.setYearOfBirth(birthYear); // will be -1 if not known
 
                     if (newToRealm) {
                         realm.copyToRealm(bday);
                     }
-                    //Log.d(TAG, String.format("execute: saved %s %s", name, nextBday.toString()));
                 }
             });
         }
@@ -273,7 +280,7 @@ public class BirthdaysHelper {
         while (cursor.moveToNext()) {
             String lookupKey = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
             String name = cursor.getString(cursor.getColumnIndex(nameField));
-            ContactSearchResult contact = new ContactSearchResult(lookupKey, name);
+//            ContactSearchResult contact = new ContactSearchResult(lookupKey, name);
 
             if (name != null && !name.isEmpty()) {
                 contactsMap.put(lookupKey, name);
