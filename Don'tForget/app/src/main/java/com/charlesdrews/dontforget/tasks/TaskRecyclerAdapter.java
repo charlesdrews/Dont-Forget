@@ -2,7 +2,6 @@ package com.charlesdrews.dontforget.tasks;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,10 +27,13 @@ public class TaskRecyclerAdapter extends RecyclerView.Adapter<TaskRecyclerAdapte
 
     private Context mContext;
     private List<TaskRealm> mTasks;
+    private OnSelectTaskListener mListener;
 
-    public TaskRecyclerAdapter(Context context, List<TaskRealm> tasks) {
+    public TaskRecyclerAdapter(Context context, List<TaskRealm> tasks,
+                               OnSelectTaskListener listener) {
         mContext = context;
         mTasks = tasks;
+        mListener = listener;
     }
 
     @Override
@@ -71,6 +73,13 @@ public class TaskRecyclerAdapter extends RecyclerView.Adapter<TaskRecyclerAdapte
                 realm.commitTransaction();
             }
         });
+
+        holder.container.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mListener.onTaskSelect(task);
+            }
+        });
     }
 
     @Override
@@ -79,15 +88,21 @@ public class TaskRecyclerAdapter extends RecyclerView.Adapter<TaskRecyclerAdapte
     }
 
     public class TaskViewHolder extends RecyclerView.ViewHolder {
+        View container;
         CheckBox checkBox;
         StrikeThruTextView taskText, timeOfDay, date;
 
         public TaskViewHolder(View itemView) {
             super(itemView);
+            container = itemView.findViewById(R.id.task_container);
             checkBox = (CheckBox) itemView.findViewById(R.id.task_checkbox);
             taskText = (StrikeThruTextView) itemView.findViewById(R.id.task_text);
             timeOfDay = (StrikeThruTextView) itemView.findViewById(R.id.task_time_of_day);
             date = (StrikeThruTextView) itemView.findViewById(R.id.task_date);
         }
+    }
+
+    public interface OnSelectTaskListener {
+        void onTaskSelect(TaskRealm task);
     }
 }

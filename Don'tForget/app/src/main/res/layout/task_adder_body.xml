@@ -10,7 +10,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
 
-        <NumberPicker
+        <com.charlesdrews.dontforget.tasks.DayPicker
             android:id="@+id/add_task_day_picker"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />

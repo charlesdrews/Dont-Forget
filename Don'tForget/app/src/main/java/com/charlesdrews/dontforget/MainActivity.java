@@ -195,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements
             case MyFragmentPagerAdapter.TASKS:
                 TaskFragment fragment = (TaskFragment) mAdapter
                         .getActiveFragment(MyFragmentPagerAdapter.TASKS);
-                fragment.addTask();
+                fragment.addOrUpdateTask(null);
                 break;
 
             case MyFragmentPagerAdapter.BIRTHDAYS:
