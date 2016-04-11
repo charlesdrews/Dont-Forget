@@ -47,6 +47,8 @@ public class TaskFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        setRetainInstance(true);
+
         if (mRealm == null || mRealm.isClosed()) {
             mRealm = Realm.getDefaultInstance();
         }
@@ -65,8 +67,8 @@ public class TaskFragment extends Fragment {
             @Override
             public void onChange() {
                 Log.d(TAG, "onChange: mTasks changed");
-                if (mTasks.isEmpty()) {
-                    /*
+                if (mTasks.size() == 0) {
+                    /* TODO
                     mRealm.beginTransaction();
                     TaskRealm firstTask = mRealm.createObject(TaskRealm.class);
                     firstTask.setDate(new Date());
