@@ -13,6 +13,8 @@
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/weather_hourly_recycler"
+        android:requiresFadingEdge="horizontal"
+        android:fadingEdgeLength="@dimen/horizontal_recycler_fade_length"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 </android.support.v7.widget.CardView>

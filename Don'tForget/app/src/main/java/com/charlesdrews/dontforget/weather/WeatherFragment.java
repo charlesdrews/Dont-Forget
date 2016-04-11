@@ -373,7 +373,8 @@ public class WeatherFragment extends Fragment implements
                 Log.d(TAG, "onResume: sync needed; new device location needed first");
                 setProgressText(getString(R.string.getting_device_location));
                 if (mGoogleApiClient.isConnected()) {
-                    mGoogleApiClient.reconnect();
+//                    mGoogleApiClient.reconnect();
+                    onConnected(Bundle.EMPTY);
                 } else {
                     mGoogleApiClient.connect();
                 }

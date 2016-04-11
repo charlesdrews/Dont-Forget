@@ -4,13 +4,16 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
+import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
-import android.text.method.LinkMovementMethod;
-import android.widget.TextView;
+import android.support.design.widget.Snackbar;
+import android.util.Log;
 
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.notifications.SchedulingService;
+
+import java.util.Set;
 
 /**
  * Inflate preferences.xml and listen for changes
@@ -21,6 +24,7 @@ public class SettingsFragment extends PreferenceFragment
 
     private WeatherLocationPreference mWeatherStaticLocation;
     private TimePickerPreference mBeforeWork, mLunchtime, mOnTheWayHome, mEvening;
+    private MultiSelectListPreference mDays;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -38,6 +42,9 @@ public class SettingsFragment extends PreferenceFragment
                 findPreference(getString(R.string.pref_key_notification_on_the_way_home));
         mEvening = (TimePickerPreference)
                 findPreference(getString(R.string.pref_key_notification_evening));
+
+        mDays = (MultiSelectListPreference)
+                findPreference(getString(R.string.pref_key_notifications_days));
     }
 
     @Override
@@ -46,13 +53,24 @@ public class SettingsFragment extends PreferenceFragment
             Preference pref = findPreference(key);
             pref.setSummary(((EditTextPreference) pref).getText());
 
-        } else if (key.equals(getString(R.string.pref_key_notifications_enabled)) ||
-                key.equals(getString(R.string.pref_key_notifications_days)) ||
-                key.equals(getString(R.string.pref_key_notification_before_work)) ||
+        } else if (key.equals(getString(R.string.pref_key_notifications_enabled))) {
+            getActivity().startService(new Intent(getActivity(), SchedulingService.class));
+
+        } else if (key.equals(getString(R.string.pref_key_notifications_days))) {
+            getActivity().startService(new Intent(getActivity(), SchedulingService.class));
+            updateDaysSummary();
+
+        } else if (key.equals(getString(R.string.pref_key_notification_before_work)) ||
                 key.equals(getString(R.string.pref_key_notification_lunchtime)) ||
                 key.equals(getString(R.string.pref_key_notification_on_the_way_home)) ||
                 key.equals(getString(R.string.pref_key_notification_evening))) {
+
             getActivity().startService(new Intent(getActivity(), SchedulingService.class));
+            Snackbar.make(
+                    getActivity().findViewById(android.R.id.content),
+                    getString(R.string.notification_prefs_updated),
+                    Snackbar.LENGTH_LONG)
+                    .show();
         }
     }
 
@@ -89,6 +107,8 @@ public class SettingsFragment extends PreferenceFragment
                 )
         ));
 
+        updateDaysSummary();
+
         prefs.registerOnSharedPreferenceChangeListener(this);
     }
 
@@ -107,5 +127,21 @@ public class SettingsFragment extends PreferenceFragment
         String minutesSummary = minutes < 10 ? "0" + minutes : String.valueOf(minutes);
         String amPm = hour < 12 ? " am" : " pm";
         return hourSummary + ":" + minutesSummary + amPm;
+    }
+
+    private void updateDaysSummary() {
+        String[] allDays = getResources().getStringArray(R.array.notification_days);
+        StringBuilder builder = new StringBuilder();
+        Set<String> selectedDays = mDays.getValues();
+
+        for (String day : allDays) {
+            if (selectedDays.contains(day)) {
+                if (builder.length() > 0) {
+                    builder.append(", ");
+                }
+                builder.append(day.substring(0, 3));
+            }
+        }
+        mDays.setSummary(builder.toString());
     }
 }

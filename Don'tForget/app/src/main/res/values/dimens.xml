@@ -8,4 +8,6 @@
     <dimen name="weather_current_temp_size">90sp</dimen>
     <dimen name="weather_hourly_icon_size">40dp</dimen>
     <dimen name="weather_daily_icon_size">40dp</dimen>
+
+    <dimen name="horizontal_recycler_fade_length">48dp</dimen>
 </resources>

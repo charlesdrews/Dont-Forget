@@ -46,8 +46,9 @@ public class MainActivity extends AppCompatActivity implements
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // load default preferences if first time running app
+        // load default preferences if first time running app & schedule corresponding notifications
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        scheduleNotifications();
 
         // set up view pager & tab layout
         mViewPager = (ViewPager) findViewById(R.id.view_pager);
@@ -68,8 +69,6 @@ public class MainActivity extends AppCompatActivity implements
 
         //TODO - have separate progress bars in each fragment
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
-
-        scheduleNotifications();
     }
 
     @Override
