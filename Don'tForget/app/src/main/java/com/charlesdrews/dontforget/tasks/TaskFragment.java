@@ -151,7 +151,15 @@ public class TaskFragment extends Fragment implements TaskRecyclerAdapter.OnSele
                 .setPositiveButton("OK", null);
 
         if (taskToUpdate != null) {
-            builder.setTitle("Update task");
+            builder.setTitle("Update task")
+                    .setNeutralButton("Delete", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            mRealm.beginTransaction();
+                            taskToUpdate.setVisible(false);
+                            mRealm.commitTransaction();
+                        }
+                    });
         } else {
             builder.setTitle("Add new task");
         }

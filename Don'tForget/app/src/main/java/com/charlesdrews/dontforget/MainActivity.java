@@ -21,7 +21,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ProgressBar;
 
 import com.charlesdrews.dontforget.birthdays.BirthdaysFragment;
 import com.charlesdrews.dontforget.birthdays.AddContactBirthday;
@@ -31,7 +30,6 @@ import com.charlesdrews.dontforget.weather.WeatherFragment;
 
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener, ViewPager.OnPageChangeListener,
-//        ProgressBarListener,
         AddContactBirthday.BirthdayUpdatedListener {
 
     private static final String TAG = "MainActivity";
@@ -42,7 +40,6 @@ public class MainActivity extends AppCompatActivity implements
     private ViewPager mViewPager;
     private MyFragmentPagerAdapter mAdapter;
     private FloatingActionButton mFab;
-    private ProgressBar mProgressBar;
 
 
     //==============================================================================================
@@ -83,9 +80,6 @@ public class MainActivity extends AppCompatActivity implements
         if (mFab != null) {
             mFab.setOnClickListener(this);
         }
-
-        //TODO - have separate progress bars in each fragment
-        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
     }
 
     @Override
@@ -179,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements
 
 
     //==============================================================================================
-    //========== Other standard listener callback methods ==========================================
+    //========== Other listener callback methods ===================================================
     //==============================================================================================
     @Override
     public void onBackPressed() {
@@ -214,32 +208,6 @@ public class MainActivity extends AppCompatActivity implements
                 break;
         }
     }
-
-
-    //==============================================================================================
-    //========== Custom listener callback methods ==================================================
-    //==============================================================================================
-    /*
-    //TODO - have separate progress bars in each fragment
-    @Override
-    public void startProgressBar() {
-        mProgressBar.setAlpha(0f);
-        mProgressBar.setVisibility(View.VISIBLE);
-        mProgressBar.animate().alpha(1f).setDuration(1000);
-    }
-
-    //TODO - have separate progress bars in each fragment
-    @Override
-    public void stopProgressBar() {
-        mProgressBar.animate().alpha(0f).setDuration(1000)
-                .setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        mProgressBar.setVisibility(View.GONE);
-                    }
-                });
-    }
-    */
 
     @Override
     public void onBirthdayUpdated(boolean success, String name, boolean deleted) {
