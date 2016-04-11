@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
@@ -37,6 +38,7 @@ public class MainActivity extends AppCompatActivity implements
     public static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
 
     private SharedPreferences mPreferences;
+    private CoordinatorLayout mRootView;
     private ViewPager mViewPager;
     private MyFragmentPagerAdapter mAdapter;
     private FloatingActionButton mFab;
@@ -65,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         // set up view pager & tab layout
+        mRootView = (CoordinatorLayout) findViewById(R.id.main_activity_root_view);
         mViewPager = (ViewPager) findViewById(R.id.view_pager);
         mAdapter = new MyFragmentPagerAdapter(getSupportFragmentManager());
         mViewPager.setAdapter(mAdapter);
@@ -130,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         if (snackbarMessage != null) {
-            Snackbar.make(mFab, snackbarMessage, Snackbar.LENGTH_LONG).show();
+            Snackbar.make(mRootView, snackbarMessage, Snackbar.LENGTH_LONG).show();
         }
     }
 
@@ -229,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements
         // not concerned about unsuccessful delete; that's probably from a contact w/o a birthday
 
         if (snackbarMessage != null && !snackbarMessage.isEmpty()) {
-            Snackbar.make(mViewPager, snackbarMessage, Snackbar.LENGTH_LONG).show();
+            Snackbar.make(mRootView, snackbarMessage, Snackbar.LENGTH_LONG).show();
         }
     }
 

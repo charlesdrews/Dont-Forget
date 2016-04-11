@@ -3,6 +3,7 @@ package com.charlesdrews.dontforget.tasks;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
@@ -158,6 +159,20 @@ public class TaskFragment extends Fragment implements TaskRecyclerAdapter.OnSele
                             mRealm.beginTransaction();
                             taskToUpdate.setVisible(false);
                             mRealm.commitTransaction();
+
+                            Snackbar.make(
+                                    getActivity().findViewById(R.id.main_activity_root_view),
+                                    R.string.task_deleted_message,
+                                    Snackbar.LENGTH_LONG)
+                                    .setAction("UNDO", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            mRealm.beginTransaction();
+                                            taskToUpdate.setVisible(true);
+                                            mRealm.commitTransaction();
+                                        }
+                                    })
+                                    .show();
                         }
                     });
         } else {

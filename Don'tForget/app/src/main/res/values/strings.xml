@@ -17,6 +17,8 @@
     <string name="no_internet_connection">No internet connection; try again later</string>
     <string name="error_retrieving_weather_data">Error retrieving weather data; try again later</string>
 
+    <string name="task_deleted_message">Task deleted</string>
+
     <string name="pref_key_suggest_updating_settings">pref_key_suggest_updating_settings</string>
     <string name="suggestion_dialog_title">Customize settings</string>
     <string name="suggestion_dialog_message">Please take a moment to customize your notification settings to fit your schedule.</string>

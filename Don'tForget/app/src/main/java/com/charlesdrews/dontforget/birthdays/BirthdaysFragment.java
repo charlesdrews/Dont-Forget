@@ -103,7 +103,7 @@ public class BirthdaysFragment extends Fragment
     private void requestReadContactsPermission() {
         if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.READ_CONTACTS)) {
             Snackbar.make(
-                    getActivity().findViewById(R.id.fab),
+                    getActivity().findViewById(R.id.main_activity_root_view),
                     "Need permission to view contacts in order to provide birthday reminders",
                     Snackbar.LENGTH_LONG
             ).show();
