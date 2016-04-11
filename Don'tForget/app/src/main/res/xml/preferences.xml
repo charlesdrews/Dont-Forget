@@ -70,4 +70,14 @@
             android:entryValues="@array/weather_units"
             android:defaultValue="@string/weather_default_unit" />
     </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/pref_title_attributions"
+        android:key="@string/pref_key_attributions">
+        <Preference
+            android:layout="@layout/icon_credit" />
+        <Preference
+            android:layout="@layout/weather_data_credit" />
+    </PreferenceCategory>
+
 </PreferenceScreen>

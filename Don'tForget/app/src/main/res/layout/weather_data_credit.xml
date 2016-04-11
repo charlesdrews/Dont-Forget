@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <TextView
+        android:text="@string/weather_data_credit"
+        style="?android:attr/textAppearanceListItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <ImageView
+        android:src="@drawable/wundergroundlogo_4c_horz"
+        android:contentDescription="@string/weather_underground_logo_desc"
+        android:tag="@string/weather_underground_url"
+        android:onClick="openBrowser"
+        android:layout_gravity="center_horizontal"
+        android:scaleType="fitStart"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content" />
+</LinearLayout>

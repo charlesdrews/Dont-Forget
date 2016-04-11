@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <com.charlesdrews.dontforget.settings.TextViewWithLinks
+        android:id="@+id/icon_credit_text"
+        android:text="@string/icon_credit"
+        style="?android:attr/textAppearanceListItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <ImageView
+        android:src="@drawable/launcher"
+        android:contentDescription="@string/weather_underground_logo_desc"
+        android:layout_gravity="center_horizontal"
+        android:scaleType="fitStart"
+        android:layout_marginTop="5dp"
+        android:layout_width="@dimen/weather_current_icon_size"
+        android:layout_height="@dimen/weather_current_icon_size" />
+</LinearLayout>

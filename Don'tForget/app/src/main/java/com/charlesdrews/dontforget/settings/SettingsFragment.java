@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
+import android.text.method.LinkMovementMethod;
+import android.widget.TextView;
 
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.notifications.SchedulingService;

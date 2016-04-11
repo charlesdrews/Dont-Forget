@@ -67,6 +67,10 @@
         <item>Celsius</item>
     </string-array>
 
-    <string name="weather_data_credit">Data provided by:</string>
+    <string name="pref_key_attributions">pref_key_attributions</string>
+    <string name="pref_title_attributions">Credits</string>
+    <string name="icon_credit">App icon made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></string>
+    <string name="weather_data_credit">Weather data provided by:</string>
     <string name="weather_underground_logo_desc">Weather Underground logo</string>
+    <string name="weather_underground_url">https://www.wunderground.com</string>
 </resources>
