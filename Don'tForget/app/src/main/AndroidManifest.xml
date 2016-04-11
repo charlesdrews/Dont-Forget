@@ -47,6 +47,7 @@
             android:name=".sync.StubProvider"
             android:authorities="@string/authority"
             android:exported="false"
+            android:label="StubProvider"
             android:syncable="true" />
 
         <service android:name=".sync.SyncService">

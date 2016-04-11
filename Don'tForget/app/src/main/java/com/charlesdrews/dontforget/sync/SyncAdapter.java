@@ -7,10 +7,9 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SyncResult;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.charlesdrews.dontforget.R;
+import com.charlesdrews.dontforget.MyApplication;
 import com.charlesdrews.dontforget.weather.model.CurrentConditionsRealm;
 import com.charlesdrews.dontforget.weather.model.DailyForecastRealm;
 import com.charlesdrews.dontforget.weather.model.ForecastDay;
@@ -49,50 +48,48 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
+        //TODO - this is just for testing
+        boolean periodic = extras.getBoolean("PERIODIC_SYNC_KEY", false);
+        if (periodic) Log.d(TAG, "onPerformSync: this is a PERIODIC sync");
+
         String query = extras.getString(LOCATION_QUERY_KEY);
-        if (query != null) {
-            getAndSaveForecastData(query);
 
-            // save sync time to shared preferences
-            String syncTimeKey = mContext.getString(R.string.weather_last_sync_time_key);
-            PreferenceManager.getDefaultSharedPreferences(mContext)
-                    .edit()
-                    .putLong(syncTimeKey, System.currentTimeMillis())
-                    .commit();
-
-            mContentResolver.notifyChange(StubProvider.WEATHER_URI, null);
-        }
-    }
-
-    public void getAndSaveForecastData(String query) {
-        if (query == null || query.isEmpty() ||
-                query.equals(getContext().getString(R.string.weather_static_location_default))) {
-            Log.d(TAG, "getAndSaveForecastData: location query string is blank; cannot sync");
-            //TODO - ask user to do one or the other - launch settings activity?
+        if (query == null || query.isEmpty()) {
+            Log.d(TAG, "onPerformSync: query string empty; cannot perform sync");
+            mContentResolver.notifyChange(StubProvider.WEATHER_URI_FAILURE, null, false);
             return;
         }
 
+        if (getAndSaveForecastData(query)) {
+            Log.d(TAG, "onPerformSync: sync successful");
+            mContentResolver.notifyChange(StubProvider.WEATHER_URI_SUCCESS, null, false);
+        } else {
+            Log.d(TAG, "onPerformSync: sync failed");
+            mContentResolver.notifyChange(StubProvider.WEATHER_URI_FAILURE, null, false);
+        }
+    }
+
+    public boolean getAndSaveForecastData(final String query) {
         Log.d(TAG, "getAndSaveForecastData: making API call w/ query " + query);
         final WeatherResponse weatherResponse = WeatherHelper.getWeatherData(query);
 
         if (weatherResponse == null) {
             Log.d(TAG, "getAndSaveForecastData: no data rec'd from API");
-            return;
+            return false;
         }
 
         Log.d(TAG, "getAndSaveForecastData: API call yielded results");
-        Realm realm = Realm.getInstance(new RealmConfiguration.Builder(getContext()).build());
+        Realm realm = Realm.getDefaultInstance();
 
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                realm.clear(CurrentConditionsRealm.class);
-                CurrentConditionsRealm current = realm.createObject(CurrentConditionsRealm.class);
-                current.setValues(weatherResponse.getCurrent_observation());
-                Log.d(TAG, "getAndSaveForecastData: current conditions saved");
-            }
-        });
+        // update current conditions in database
+        CurrentConditionsRealm current = new CurrentConditionsRealm();
+        current.setValues(weatherResponse.getCurrent_observation(), query);
+        realm.beginTransaction();
+        realm.copyToRealmOrUpdate(current);
+        realm.commitTransaction();
+        Log.d(TAG, "getAndSaveForecastData: current conditions saved");
 
+        // update hourly forecasts in database
         final List<HourlyForecast> hourlyForecasts = weatherResponse.getHourly_forecast();
         realm.executeTransaction(new Realm.Transaction() {
             @Override
@@ -106,6 +103,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             }
         });
 
+        // update daily forecasts in database
         final List<ForecastDay> forecastDays = weatherResponse.getForecast()
                 .getSimpleforecast().getForecastday();
         realm.executeTransaction(new Realm.Transaction() {
@@ -122,5 +120,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         realm.close();
         Log.d(TAG, "getAndSaveForecastData: results persisted to db");
+        return true;
     }
 }

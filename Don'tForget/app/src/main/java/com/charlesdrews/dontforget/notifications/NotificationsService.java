@@ -12,6 +12,7 @@ import android.text.Html;
 import android.util.Log;
 
 import com.charlesdrews.dontforget.MainActivity;
+import com.charlesdrews.dontforget.MyApplication;
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.birthdays.model.BirthdayRealm;
 import com.charlesdrews.dontforget.tasks.model.TaskRealm;
@@ -56,7 +57,7 @@ public class NotificationsService extends IntentService {
         String action = intent.getAction();
         if (action != null && action.equals(ACTION_SNOOZE)) {
             Log.d(TAG, "onHandleIntent: action snooze");
-            //TODO
+            //TODO - don't need this action
         }
 
         // make sure notification type was passed in the intent
@@ -72,7 +73,7 @@ public class NotificationsService extends IntentService {
         PendingIntent clickPendingIntent = PendingIntent
                 .getActivity(this, 0, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        /* this isn't working
+        /* TODO - this isn't working
         Intent snoozeIntent = new Intent(this, SnoozeService.class);
         snoozeIntent.putExtra(SchedulingService.NOTIFICATION_TYPE_KEY, notificationType);
         snoozeIntent.setAction(ACTION_SNOOZE);
@@ -81,7 +82,7 @@ public class NotificationsService extends IntentService {
         */
 
         // get notification message text - helper methods use Realm
-        mRealm = Realm.getInstance(new RealmConfiguration.Builder(this).build());
+        mRealm = Realm.getDefaultInstance();
         String weatherText = getWeatherText(notificationType);
         String taskText = getTaskText(notificationType);
         String birthdayText = getBirthdayText();
@@ -138,6 +139,8 @@ public class NotificationsService extends IntentService {
      *   - Evening notification: show tomorrow's forecast
      */
     private String getWeatherText(int notificationType) {
+        //TODO - check if weather is out of date
+
         // grab weather data from db
         CurrentConditionsRealm current = mRealm.where(CurrentConditionsRealm.class).findFirst();
         RealmResults<HourlyForecastRealm> hourlyForecasts = mRealm.where(HourlyForecastRealm.class)
@@ -187,6 +190,9 @@ public class NotificationsService extends IntentService {
                     break;
                 }
             }
+        }
+        if (probPrecipToday == -1) {
+            probPrecipToday = 0;
         }
 
         int probPrecipTomorrow = tomorrow.getProbOfPrecip();

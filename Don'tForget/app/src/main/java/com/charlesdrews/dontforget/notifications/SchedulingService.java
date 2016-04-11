@@ -62,8 +62,6 @@ public class SchedulingService extends IntentService {
         setAlarmForNotification(TimeOfDay.LUNCHTIME, lunchtime);
         setAlarmForNotification(TimeOfDay.ON_THE_WAY_HOME, onTheWayHome);
         setAlarmForNotification(TimeOfDay.EVENING, evening);
-
-        //realm.close();
     }
 
     private void setAlarmForNotification(TimeOfDay timeOfDay, String hourMinString) {

@@ -4,16 +4,20 @@ package com.charlesdrews.dontforget.weather;
 import android.Manifest;
 import android.accounts.Account;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
@@ -38,7 +42,6 @@ import com.charlesdrews.dontforget.sync.SyncAdapter;
 import com.charlesdrews.dontforget.weather.model.CurrentConditionsRealm;
 import com.charlesdrews.dontforget.weather.model.DailyForecastRealm;
 import com.charlesdrews.dontforget.weather.model.HourlyForecastRealm;
-import com.charlesdrews.dontforget.weather.model.LocationRealm;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -54,6 +57,9 @@ import io.realm.Realm;
 import io.realm.RealmChangeListener;
 import io.realm.RealmResults;
 
+/**
+ * Handles retrieval of device location, triggers syncing of weather data, updates views on sync
+ */
 public class WeatherFragment extends Fragment implements
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
         LocationListener {
@@ -61,70 +67,71 @@ public class WeatherFragment extends Fragment implements
     private static final String TAG = WeatherFragment.class.getSimpleName();
 
     private static final long SYNC_THRESHOLD_IN_MINUTES = 30;
-    private static final long LOCATION_THRESHOLD_IN_MINUTES = 30;
+    private static final long LOCATION_THRESHOLD_IN_MINUTES = 60;
+    private static final long PERIODIC_SYNC_INTERVAL_IN_MINUTES = 2;
 
     private static final long SYNC_THRESHOLD_IN_MILLIS = SYNC_THRESHOLD_IN_MINUTES * 60 * 1000;
     private static final long LOCATION_THRESHOLD_IN_MILLIS = LOCATION_THRESHOLD_IN_MINUTES * 60 * 1000;
-
-//    public static final String LAST_LOCATION_PREF_KEY = "lastLocationPrefKey";
+    private static final long PERIODIC_SYNC_INTERVAL_IN_SECONDS = PERIODIC_SYNC_INTERVAL_IN_MINUTES * 60;
 
     private SharedPreferences mPreferences;
-    private boolean mUseMetric;
-    private WeatherContentObserver mContentObserver;
+    private boolean mUseMetric, mCanUseDeviceLocation;
+    private String mStaticLocation;
     private Account mAccount;
+    private WeatherContentObserver mContentObserver;
     private GoogleApiClient mGoogleApiClient;
-    private Location mLastLocation;
-    private View mRootView;
     private Realm mRealm;
-    private RealmResults<HourlyForecastRealm> mHourlyForecasts;
-    private RealmResults<DailyForecastRealm> mDailyForecasts;
-    private RecyclerView mHourlyRecycler, mDailyRecycler;
+    private CurrentConditionsRealm mCurrentConditions;
     private HourlyRecyclerAdapter mHourlyAdapter;
     private DailyRecyclerAdapter mDailyAdapter;
+    private View mRootView;
 
-    public WeatherFragment() {}
+    public WeatherFragment() {
+    }
 
+
+    //========== Fragment lifecycle methods ========================================================
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         mPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        mUseMetric = "Metric".equals(mPreferences.getString(
-                getString(R.string.pref_key_weather_units),
-                getString(R.string.weather_default_unit)));
 
+        // prepare for data syncs w/ sync account & sync listener (content observer)
+        mAccount = AccountHelper.getAccount(getContext());
         mContentObserver = new WeatherContentObserver(new Handler());
 
-        mAccount = AccountHelper.getAccount(getContext());
-
+        // initialize Google API Client to allow for retrieval of device location when needed
         mGoogleApiClient = new GoogleApiClient.Builder(getContext())
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
 
-        if (mRealm == null || mRealm.isClosed()) {
-            mRealm = Realm.getDefaultInstance();
-        }
+        // pull most recent data from Realm database
+        mRealm = Realm.getDefaultInstance();
+        mCurrentConditions = mRealm.where(CurrentConditionsRealm.class).findFirst();
+        RealmResults<HourlyForecastRealm> hourlyForecasts = mRealm.where(HourlyForecastRealm.class)
+                .findAllSortedAsync("dateTime");
+        RealmResults<DailyForecastRealm> dailyForecasts = mRealm.where(DailyForecastRealm.class)
+                .findAllSortedAsync("date");
 
-        mHourlyForecasts = mRealm.where(HourlyForecastRealm.class).findAllSortedAsync("dateTime");
-        mDailyForecasts = mRealm.where(DailyForecastRealm.class).findAllSortedAsync("date");
+        // initialize recycler view adapters & trigger adapter updates when data changes
+        mHourlyAdapter = new HourlyRecyclerAdapter(getContext(), hourlyForecasts, mUseMetric);
+        mDailyAdapter = new DailyRecyclerAdapter(getContext(), dailyForecasts, mUseMetric);
 
-        mHourlyAdapter = new HourlyRecyclerAdapter(getContext(), mHourlyForecasts, mUseMetric);
-        mDailyAdapter = new DailyRecyclerAdapter(getContext(), mDailyForecasts, mUseMetric);
-
-        mHourlyForecasts.addChangeListener(new RealmChangeListener() {
+        hourlyForecasts.addChangeListener(new RealmChangeListener() {
             @Override
             public void onChange() {
-                Log.d(TAG, "onChange: mHourlyForecasts changed");
+                Log.d(TAG, "onChange: hourlyForecasts changed");
                 mHourlyAdapter.notifyDataSetChanged();
             }
         });
 
-        mDailyForecasts.addChangeListener(new RealmChangeListener() {
+        dailyForecasts.addChangeListener(new RealmChangeListener() {
             @Override
             public void onChange() {
-                Log.d(TAG, "onChange: mDailyForecasts changed");
+                Log.d(TAG, "onChange: dailyForecasts changed");
                 mDailyAdapter.notifyDataSetChanged();
             }
         });
@@ -137,16 +144,16 @@ public class WeatherFragment extends Fragment implements
 
         updateCurrentConditionsCard();
 
-        mHourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
-        mDailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
+        RecyclerView hourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
+        RecyclerView dailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
 
-        mHourlyRecycler.setLayoutManager(
+        hourlyRecycler.setLayoutManager(
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        mDailyRecycler.setLayoutManager(
+        dailyRecycler.setLayoutManager(
                 new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
 
-        mHourlyRecycler.setAdapter(mHourlyAdapter);
-        mDailyRecycler.setAdapter(mDailyAdapter);
+        hourlyRecycler.setAdapter(mHourlyAdapter);
+        dailyRecycler.setAdapter(mDailyAdapter);
 
         return mRootView;
     }
@@ -155,20 +162,27 @@ public class WeatherFragment extends Fragment implements
     public void onResume() {
         super.onResume();
 
-        // listen for data syncs
+        // begin listening for data syncs
         getContext().getContentResolver().registerContentObserver(
                 Uri.parse(StubProvider.BASE_URI_STRING), true, mContentObserver);
 
-        // update in case user changed preferences since onCreate() was run
+        // update user preferences
         mUseMetric = "Metric".equals(mPreferences.getString(
                 getString(R.string.pref_key_weather_units),
                 getString(R.string.weather_default_unit)));
+
+        mCanUseDeviceLocation = mPreferences.getBoolean(
+                getString(R.string.pref_key_weather_use_device_location), true);
+
+        mStaticLocation = mPreferences.getString(
+                getString(R.string.pref_key_weather_static_location), null);
+
         mHourlyAdapter.setUseMetric(mUseMetric);
         mDailyAdapter.setUseMetric(mUseMetric);
 
+        // initiate a new sync if last sync too long ago, or if never synced before
         if (syncNeeded()) {
-            Log.d(TAG, "onResume: sync needed");
-            startSync();
+            startSync(false); // false -> automatic sync, not sync manually initiated by user
         }
     }
 
@@ -176,6 +190,8 @@ public class WeatherFragment extends Fragment implements
     public void onPause() {
         super.onPause();
         getContext().getContentResolver().unregisterContentObserver(mContentObserver);
+
+        //TODO - move progress bar to fragment
         ((MainActivity) getActivity()).stopProgressBar();
     }
 
@@ -197,6 +213,8 @@ public class WeatherFragment extends Fragment implements
         }
     }
 
+
+    //========== Google API Client callback methods & location listener ============================
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected: connected to GoogleApiClient");
@@ -215,15 +233,10 @@ public class WeatherFragment extends Fragment implements
         Log.d(TAG, "onConnected: permission granted");
 
         // if location is available, request new sync using location data
-//        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-//        if (mLastLocation != null) {
         if (lastLocation != null) {
             Log.d(TAG, "onConnected: last location retrieved successfully");
-//            requestWeatherSync(getQueryStringFromLocation(mLastLocation));
-//            saveLastLocationToDb(mLastLocation);
             requestWeatherSync(getQueryStringFromLocation(lastLocation));
-            saveLastLocationToDb(lastLocation);
         } else {
             // if location not yet available, set up a location request & trigger sync from listener
             Log.d(TAG, "onConnected: last location not available; launching a location request");
@@ -239,126 +252,79 @@ public class WeatherFragment extends Fragment implements
 
     @Override
     public void onConnectionSuspended(int i) {
-        showConnectionProblemSnackbar();
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        showConnectionProblemSnackbar();
-    }
-
-    private void showConnectionProblemSnackbar() {
+        //TODO - move progress bar to fragment
         ((MainActivity) getActivity()).stopProgressBar();
         Snackbar.make(
                 getActivity().findViewById(android.R.id.content),
-                "Unable to get device location",
-                Snackbar.LENGTH_SHORT)
+                getString(R.string.unable_to_get_device_location),
+                Snackbar.LENGTH_LONG)
+                .show();
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        //TODO - move progress bar to fragment
+        ((MainActivity) getActivity()).stopProgressBar();
+        Snackbar.make(
+                getActivity().findViewById(android.R.id.content),
+                getString(R.string.unable_to_get_device_location),
+                Snackbar.LENGTH_LONG)
                 .show();
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        Log.d(TAG, "onLocationChanged: location rec'd");
+        Log.d(TAG, "onLocationChanged: new location received");
         LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-//        mLastLocation = location;
-//        saveLastLocationToDb(mLastLocation);
         requestWeatherSync(getQueryStringFromLocation(location));
-        saveLastLocationToDb(location);
     }
 
-    private void updateCurrentConditionsCard() {
-        CurrentConditionsRealm currentConditions = mRealm.where(CurrentConditionsRealm.class).findFirst();
 
-        if (currentConditions != null) {
-            TextView location = (TextView) mRootView.findViewById(R.id.current_location);
-            location.setText(String.format("%s, %s", currentConditions.getCity(),
-                    currentConditions.getStateAbbrev()));
-
-            long lastSyncTime = mPreferences.getLong(getString(R.string.weather_last_sync_time_key), -1);
-            Date updateDate = new Date(lastSyncTime);
-
-            TextView date = (TextView) mRootView.findViewById(R.id.current_date);
-            SimpleDateFormat sdf1 = new SimpleDateFormat("EEEE, MMM d", Locale.US);
-            date.setText(sdf1.format(updateDate));
-
-            TextView updated = (TextView) mRootView.findViewById(R.id.current_update_time);
-            SimpleDateFormat sdf2 = new SimpleDateFormat("'updated at 'h:m a", Locale.US);
-            updated.setText(sdf2.format(updateDate));
-
-            TextView condition = (TextView) mRootView.findViewById(R.id.current_condition);
-            condition.setText(currentConditions.getCurrConditionDesc());
-
-            TextView temp = (TextView) mRootView.findViewById(R.id.current_temp);
-            if (mUseMetric) {
-                temp.setText(String.format("%d°", Math.round(currentConditions.getTempCel())));
-            } else {
-                temp.setText(String.format("%d°", Math.round(currentConditions.getTempFahr())));
-            }
-
-            ImageView icon = (ImageView) mRootView.findViewById(R.id.current_icon);
-            RotateAnimation anim = new RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f,
-                    Animation.RELATIVE_TO_SELF, 0.5f);
-            anim.setDuration(500);
-            Picasso.with(getContext()).load(currentConditions.getIconUrl()).into(icon);
-            icon.startAnimation(anim);
-
-            Log.d(TAG, "updateViewsWithDataFromDb: current card updated");
-        }
-    }
-
+    //========== Helper methods ====================================================================
     private boolean syncNeeded() {
-        //TODO - use Realm to store last sync time, not shared prefs
-        long lastSyncTime = mPreferences.getLong(getString(R.string.weather_last_sync_time_key), -1);
-
-        // return true if no last sync, or sync was not within threshold
-        Log.d(TAG, "syncNeeded: millis since last sync " + (System.currentTimeMillis() - lastSyncTime));
-        Log.d(TAG, "syncNeeded: threshold " + SYNC_THRESHOLD_IN_MILLIS);
-        return lastSyncTime == -1 ||
-                (System.currentTimeMillis() - lastSyncTime > SYNC_THRESHOLD_IN_MILLIS);
+        return mCurrentConditions == null ||
+                (System.currentTimeMillis() - mCurrentConditions.getTimeObtainedInMillis()
+                        > SYNC_THRESHOLD_IN_MILLIS);
     }
 
-    public void startSync() {
-        //TODO - check if device has internet access
-
+    public void startSync(boolean userTappedRefreshButton) {
         //TODO - move progress bar to fragment - use boolean to control?
         ((MainActivity) getActivity()).startProgressBar();
 
-        // use device location or static location per user prefs
-        boolean okToUseDeviceLocation = mPreferences.getBoolean(getString(R.string.pref_key_weather_geo), false);
+        switch (getSyncCase(userTappedRefreshButton)) {
+            case NO_NETWORK_CONNECTION:
+                Log.d(TAG, "onResume: sync needed, but no internet connection");
+                //TODO - move progress bar to fragment
+                ((MainActivity) getActivity()).stopProgressBar();
+                Snackbar.make(
+                        getActivity().findViewById(android.R.id.content),
+                        getString(R.string.no_internet_connection),
+                        Snackbar.LENGTH_LONG)
+                        .show();
+                break;
 
-        if (okToUseDeviceLocation) {
-            Log.d(TAG, "startSync: using geolocation");
-
-            // get last location from db
-            LocationRealm lastLocation = mRealm.where(LocationRealm.class).findFirst();
-
-            // if null, or if older than threshold, update location
-            if (locationUpdateNeeded(lastLocation)) {
-                Log.d(TAG, "startSync: location update needed");
+            case SYNC_WITH_NEW_DEVICE_LOCATION:
+                Log.d(TAG, "onResume: sync needed; new device location needed first");
                 if (mGoogleApiClient.isConnected()) {
-                    // can't call connect() w/o disconnecting first, so call callback manually
-                    onConnected(null);
+                    mGoogleApiClient.reconnect();
                 } else {
                     mGoogleApiClient.connect();
                 }
-            } else {
-                // or if present and not too old, start sync
-                Log.d(TAG, "startSync: have usable location; requesting sync");
-                requestWeatherSync(lastLocation.getLocationString());
-            }
+                break;
 
-        } else {
-            // if user disabled geolocation in preferences, use static location, if set
-            Log.d(TAG, "startSync: using static location");
-            String staticLocation = mPreferences
-                    .getString(getString(R.string.pref_key_weather_static_location), null);
+            case SYNC_WITH_EXISTING_DEVICE_LOCATION:
+                Log.d(TAG, "onResume: sync needed; reuse last-used device location");
+                requestWeatherSync(mCurrentConditions.getQueryString());
+                break;
 
-            if (staticLocation != null && !staticLocation.isEmpty() &&
-                    !staticLocation.equals(getString(R.string.weather_static_location_default))) {
-                requestWeatherSync(staticLocation);
-            } else {
-                // alert user to enable geolocation or enter a static location
-                Log.d(TAG, "startSync: geolocation off & no static location set!");
+            case SYNC_WITH_STATIC_LOCATION:
+                Log.d(TAG, "onResume: sync needed; use static location");
+                requestWeatherSync(mStaticLocation);
+                break;
+
+            case NEED_USER_INPUT:
+                Log.d(TAG, "onResume: sync needed, but can't use device location & no static location set");
+                //TODO - move progress bar to fragment
                 ((MainActivity) getActivity()).stopProgressBar();
                 new AlertDialog.Builder(getContext())
                         .setTitle("Location needed")
@@ -370,7 +336,83 @@ public class WeatherFragment extends Fragment implements
                             }
                         })
                         .show();
+                break;
+        }
+    }
+
+    private SyncCase getSyncCase(boolean userTappedRefreshButton) {
+        if (!haveInternetConnectivity()) {
+            return SyncCase.NO_NETWORK_CONNECTION;
+        }
+
+        if (mCanUseDeviceLocation) {
+            if (userTappedRefreshButton || newDeviceLocationNeeded()) {
+                // always get new location if user manually requested the sync
+                return SyncCase.SYNC_WITH_NEW_DEVICE_LOCATION;
+            } else {
+                return SyncCase.SYNC_WITH_EXISTING_DEVICE_LOCATION;
             }
+        }
+
+        if (staticLocationIsValid()) {
+            return SyncCase.SYNC_WITH_STATIC_LOCATION;
+        }
+
+        return SyncCase.NEED_USER_INPUT;
+    }
+
+    private boolean newDeviceLocationNeeded() {
+        return mCurrentConditions == null ||
+                (System.currentTimeMillis() - mCurrentConditions.getTimeObtainedInMillis()
+                        > LOCATION_THRESHOLD_IN_MILLIS);
+    }
+
+    private boolean staticLocationIsValid() {
+        return mStaticLocation != null && !mStaticLocation.isEmpty() &&
+                !mStaticLocation.equals(getString(R.string.weather_static_location_default));
+    }
+
+    private boolean haveInternetConnectivity() {
+        ConnectivityManager manager = (ConnectivityManager) getContext()
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = manager.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnected();
+    }
+
+    private void updateCurrentConditionsCard() {
+        if (mCurrentConditions != null && mCurrentConditions.isValid()) {
+            TextView location = (TextView) mRootView.findViewById(R.id.current_location);
+            location.setText(String.format("%s, %s", mCurrentConditions.getCity(),
+                    mCurrentConditions.getStateAbbrev()));
+
+            Date updateDate = new Date(mCurrentConditions.getTimeObtainedInMillis());
+
+            TextView date = (TextView) mRootView.findViewById(R.id.current_date);
+            SimpleDateFormat sdf1 = new SimpleDateFormat("EEEE, MMM d", Locale.US);
+            date.setText(sdf1.format(updateDate));
+
+            TextView updated = (TextView) mRootView.findViewById(R.id.current_update_time);
+            SimpleDateFormat sdf2 = new SimpleDateFormat("'updated at 'h:m a", Locale.US);
+            updated.setText(sdf2.format(updateDate));
+
+            TextView condition = (TextView) mRootView.findViewById(R.id.current_condition);
+            condition.setText(mCurrentConditions.getCurrConditionDesc());
+
+            TextView temp = (TextView) mRootView.findViewById(R.id.current_temp);
+            if (mUseMetric) {
+                temp.setText(String.format(Locale.US, "%d°", Math.round(mCurrentConditions.getTempCel())));
+            } else {
+                temp.setText(String.format(Locale.US, "%d°", Math.round(mCurrentConditions.getTempFahr())));
+            }
+
+            ImageView icon = (ImageView) mRootView.findViewById(R.id.current_icon);
+            RotateAnimation anim = new RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f,
+                    Animation.RELATIVE_TO_SELF, 0.5f);
+            anim.setDuration(500);
+            Picasso.with(getContext()).load(mCurrentConditions.getIconUrl()).into(icon);
+            icon.startAnimation(anim);
+
+            Log.d(TAG, "updateCurrentConditionsCard: update complete");
         }
     }
 
@@ -378,43 +420,66 @@ public class WeatherFragment extends Fragment implements
         return location.getLatitude() + "," + location.getLongitude();
     }
 
-    private void saveLastLocationToDb(Location lastLocation) {
-        mRealm.beginTransaction();
-        mRealm.clear(LocationRealm.class);
-        LocationRealm locationRealm = mRealm.createObject(LocationRealm.class);
-        locationRealm.setLocationString(getQueryStringFromLocation(lastLocation));
-        locationRealm.setLocationTimeInMillis(System.currentTimeMillis());
-        mRealm.commitTransaction();
-    }
-
     private void requestWeatherSync(String locationQuery) {
         Log.d(TAG, "requestWeatherSync: requesting sync for " + locationQuery);
-        Bundle settingsBundle = new Bundle();
-        settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-        settingsBundle.putString(SyncAdapter.LOCATION_QUERY_KEY, locationQuery);
-        ContentResolver.requestSync(mAccount, getString(R.string.authority), settingsBundle);
+        String authority = getString(R.string.authority);
+
+        // Cancel any existing syncs first
+        ContentResolver.cancelSync(mAccount, authority);
+
+        // Request immediate, one-time sync
+        Bundle oneTimeSyncExtras = new Bundle();
+        oneTimeSyncExtras.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+        oneTimeSyncExtras.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+        oneTimeSyncExtras.putString(SyncAdapter.LOCATION_QUERY_KEY, locationQuery);
+        ContentResolver.requestSync(mAccount, authority, oneTimeSyncExtras);
+
+        // Add a periodic, ongoing sync
+        ContentResolver.setSyncAutomatically(mAccount, authority, true);
+        Bundle periodicSyncExtras = new Bundle();
+        periodicSyncExtras.putString(SyncAdapter.LOCATION_QUERY_KEY, locationQuery);
+        periodicSyncExtras.putBoolean("PERIODIC_SYNC_KEY", true);
+        ContentResolver.addPeriodicSync(mAccount, authority, periodicSyncExtras,
+                PERIODIC_SYNC_INTERVAL_IN_SECONDS);
     }
 
-    private boolean locationUpdateNeeded(LocationRealm lastLocation) {
-        return lastLocation == null ||
-                (System.currentTimeMillis() - lastLocation.getLocationTimeInMillis()
-                        > LOCATION_THRESHOLD_IN_MILLIS);
+
+    //========== Enumerate the possible cases when a sync is needed ================================
+    private enum SyncCase {
+        NO_NETWORK_CONNECTION,              // notify user a connection is needed
+        SYNC_WITH_NEW_DEVICE_LOCATION,      // use Google API Client to get new location
+        SYNC_WITH_EXISTING_DEVICE_LOCATION, // last location saved in database
+        SYNC_WITH_STATIC_LOCATION,          // static location saved in shared prefs
+        NEED_USER_INPUT     // user turned off device location & did not provide static location
     }
 
+
+    //========== Content Observer - detects when sync adapter finishes a new sync ==================
     private class WeatherContentObserver extends ContentObserver {
         public WeatherContentObserver(Handler handler) {
             super(handler);
         }
 
-        // Triggered when a sync is completed
         @Override
         public void onChange(boolean selfChange, Uri uri) {
             super.onChange(selfChange, uri);
-            Log.d(TAG, "onChange: ContentObserver triggered - Realm listeners should trigger");
 
-            updateCurrentConditionsCard();
+            //TODO - move progress bar to fragment
             ((MainActivity) getActivity()).stopProgressBar();
+
+            if (uri.compareTo(StubProvider.WEATHER_URI_SUCCESS) == 0) {
+                Log.d(TAG, "onChange: sync completed successfully");
+                // hourly & daily forecast realm lists will notify their respective adapters automatically
+                // just need to update current conditions manually
+                updateCurrentConditionsCard();
+            } else {
+                Log.d(TAG, "onChange: sync failed");
+                Snackbar.make(
+                        getActivity().findViewById(android.R.id.content),
+                        getString(R.string.error_retrieving_weather_data),
+                        Snackbar.LENGTH_LONG)
+                        .show();
+            }
         }
     }
 }
