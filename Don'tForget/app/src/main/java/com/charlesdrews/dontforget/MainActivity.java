@@ -2,6 +2,7 @@ package com.charlesdrews.dontforget;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -13,6 +14,7 @@ import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -34,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements
     public static final int CONTACTS_PERMISSION_REQUEST_CODE = 123;
     public static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
 
+    private SharedPreferences mPreferences;
     private ViewPager mViewPager;
     private MyFragmentPagerAdapter mAdapter;
     private FloatingActionButton mFab;
@@ -48,7 +51,15 @@ public class MainActivity extends AppCompatActivity implements
 
         // load default preferences if first time running app & schedule corresponding notifications
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        mPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         scheduleNotifications();
+
+        // check if necessary to prompt user to customize settings
+        boolean promptUserToVisitSettings = mPreferences
+                .getBoolean(getString(R.string.pref_key_suggest_updating_settings), true);
+        if (promptUserToVisitSettings) {
+            launchSuggestVisitSettingsDialog();
+        }
 
         // set up view pager & tab layout
         mViewPager = (ViewPager) findViewById(R.id.view_pager);
@@ -158,8 +169,7 @@ public class MainActivity extends AppCompatActivity implements
                 } else {
 
                     // access device location -> denied
-                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-                    prefs.edit().putBoolean(getString(R.string.pref_key_weather_use_device_location), false).commit();
+                    mPreferences.edit().putBoolean(getString(R.string.pref_key_weather_use_device_location), false).commit();
                     snackbarMessage = "Permission to use device location denied";
                 }
                 break;
@@ -265,5 +275,34 @@ public class MainActivity extends AppCompatActivity implements
 
     public void scheduleNotifications() {
         startService(new Intent(this, SchedulingService.class));
+    }
+
+    private void launchSuggestVisitSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.suggestion_dialog_title))
+                .setMessage(getString(R.string.suggestion_dialog_message))
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+                        mPreferences.edit()
+                                .putBoolean(
+                                        getString(R.string.pref_key_suggest_updating_settings),
+                                        false)
+                                .apply();
+                    }
+                })
+                .setNegativeButton("Later", null)
+                .setNeutralButton("Don't Show Again", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        mPreferences.edit()
+                                .putBoolean(
+                                        getString(R.string.pref_key_suggest_updating_settings),
+                                        false)
+                                .apply();
+                    }
+                });
+        builder.show();
     }
 }
