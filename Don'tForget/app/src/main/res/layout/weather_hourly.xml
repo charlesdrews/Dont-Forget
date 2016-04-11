@@ -2,6 +2,7 @@
 <android.support.v7.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_hourly"
     app:cardCornerRadius="10dp"
     app:cardElevation="6dp"
     app:contentPadding="10dp"

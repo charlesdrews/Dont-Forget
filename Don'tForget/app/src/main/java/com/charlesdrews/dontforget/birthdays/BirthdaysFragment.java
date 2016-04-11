@@ -42,6 +42,8 @@ public class BirthdaysFragment extends Fragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        setRetainInstance(true);
+
         if (!haveReadContactsPermission()) {
             requestReadContactsPermission();
         }

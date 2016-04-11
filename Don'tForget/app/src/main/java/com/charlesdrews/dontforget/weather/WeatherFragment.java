@@ -3,6 +3,9 @@ package com.charlesdrews.dontforget.weather;
 
 import android.Manifest;
 import android.accounts.Account;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -28,9 +31,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.charlesdrews.dontforget.MainActivity;
@@ -89,6 +92,8 @@ public class WeatherFragment extends Fragment implements
     private HourlyRecyclerAdapter mHourlyAdapter;
     private DailyRecyclerAdapter mDailyAdapter;
     private View mRootView;
+    private ProgressBar mProgressBar;
+    private TextView mProgressText;
 
     public WeatherFragment() {}
 
@@ -99,6 +104,8 @@ public class WeatherFragment extends Fragment implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        setRetainInstance(true);
 
         mPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         updateUserPreferences();
@@ -134,7 +141,10 @@ public class WeatherFragment extends Fragment implements
                              Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_weather, container, false);
 
-        updateCurrentConditionsCard();
+        mProgressBar = (ProgressBar) mRootView.findViewById(R.id.weather_progress_bar);
+        mProgressText = (TextView) mRootView.findViewById(R.id.weather_progress_text);
+
+        updateCurrentConditionsCard(false);
 
         RecyclerView hourlyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_hourly_recycler);
         RecyclerView dailyRecycler = (RecyclerView) mRootView.findViewById(R.id.weather_daily_recycler);
@@ -163,21 +173,36 @@ public class WeatherFragment extends Fragment implements
             @Override
             public void onChange() {
                 Log.d(TAG, "onChange: mCurrentConditions changed");
-                updateCurrentConditionsCard();
+                if (mCurrentConditions.size() == 0) {
+                    mRootView.findViewById(R.id.card_current).setVisibility(View.GONE);
+                } else {
+                    mRootView.findViewById(R.id.card_current).setVisibility(View.VISIBLE);
+                    updateCurrentConditionsCard(true);
+                }
             }
         });
         mHourlyForecasts.addChangeListener(new RealmChangeListener() {
             @Override
             public void onChange() {
                 Log.d(TAG, "onChange: hourlyForecasts changed");
-                mHourlyAdapter.notifyDataSetChanged();
+                if (mHourlyForecasts.size() == 0) {
+                    mRootView.findViewById(R.id.card_hourly).setVisibility(View.GONE);
+                } else {
+                    mRootView.findViewById(R.id.card_hourly).setVisibility(View.VISIBLE);
+                    mHourlyAdapter.notifyDataSetChanged();
+                }
             }
         });
         mDailyForecasts.addChangeListener(new RealmChangeListener() {
             @Override
             public void onChange() {
                 Log.d(TAG, "onChange: dailyForecasts changed");
-                mDailyAdapter.notifyDataSetChanged();
+                if (mDailyForecasts.size() == 0) {
+                    mRootView.findViewById(R.id.card_daily).setVisibility(View.GONE);
+                } else {
+                    mRootView.findViewById(R.id.card_daily).setVisibility(View.VISIBLE);
+                    mDailyAdapter.notifyDataSetChanged();
+                }
             }
         });
 
@@ -188,7 +213,7 @@ public class WeatherFragment extends Fragment implements
             // if mUserMetric changed, update views
             mHourlyAdapter.setUseMetric(mUseMetric);
             mDailyAdapter.setUseMetric(mUseMetric);
-            updateCurrentConditionsCard();
+            updateCurrentConditionsCard(true);
         }
 
         // initiate a new sync if last sync too long ago, or if never synced before
@@ -206,9 +231,6 @@ public class WeatherFragment extends Fragment implements
         mCurrentConditions.removeChangeListeners();
         mHourlyForecasts.removeChangeListeners();
         mDailyForecasts.removeChangeListeners();
-
-        //TODO - move progress bar to fragment
-        ((MainActivity) getActivity()).stopProgressBar();
     }
 
     @Override
@@ -272,8 +294,7 @@ public class WeatherFragment extends Fragment implements
 
     @Override
     public void onConnectionSuspended(int i) {
-        //TODO - move progress bar to fragment
-        ((MainActivity) getActivity()).stopProgressBar();
+        stopProgressBar("onConnectionSuspended");
         Snackbar.make(
                 getActivity().findViewById(android.R.id.content),
                 getString(R.string.unable_to_get_device_location),
@@ -283,8 +304,7 @@ public class WeatherFragment extends Fragment implements
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        //TODO - move progress bar to fragment
-        ((MainActivity) getActivity()).stopProgressBar();
+        stopProgressBar("onConnectionFailed");
         Snackbar.make(
                 getActivity().findViewById(android.R.id.content),
                 getString(R.string.unable_to_get_device_location),
@@ -327,7 +347,7 @@ public class WeatherFragment extends Fragment implements
             mCurrentConditions.load(); // finish loading synchronously, if necessary
         }
 
-        if (!mCurrentConditions.isValid() || mCurrentConditions.isEmpty()) {
+        if (!mCurrentConditions.isValid() || mCurrentConditions.size() == 0) {
             return true;
         }
 
@@ -336,14 +356,12 @@ public class WeatherFragment extends Fragment implements
     }
 
     public void startSync(boolean userTappedRefreshButton) {
-        //TODO - move progress bar to fragment - use boolean to control?
-        ((MainActivity) getActivity()).startProgressBar();
+        startProgressBar();
 
         switch (getSyncCase(userTappedRefreshButton)) {
             case NO_NETWORK_CONNECTION:
                 Log.d(TAG, "onResume: sync needed, but no internet connection");
-                //TODO - move progress bar to fragment
-                ((MainActivity) getActivity()).stopProgressBar();
+                stopProgressBar("startSync - NO_NETWORK_CONNECTION");
                 Snackbar.make(
                         getActivity().findViewById(android.R.id.content),
                         getString(R.string.no_internet_connection),
@@ -353,6 +371,7 @@ public class WeatherFragment extends Fragment implements
 
             case SYNC_WITH_NEW_DEVICE_LOCATION:
                 Log.d(TAG, "onResume: sync needed; new device location needed first");
+                setProgressText(getString(R.string.getting_device_location));
                 if (mGoogleApiClient.isConnected()) {
                     mGoogleApiClient.reconnect();
                 } else {
@@ -372,8 +391,7 @@ public class WeatherFragment extends Fragment implements
 
             case NEED_USER_INPUT:
                 Log.d(TAG, "onResume: sync needed, but can't use device location & no static location set");
-                //TODO - move progress bar to fragment
-                ((MainActivity) getActivity()).stopProgressBar();
+                stopProgressBar("startSync - NEED_USER_INPUT");
                 new AlertDialog.Builder(getContext())
                         .setTitle("Location needed")
                         .setMessage("Please enable device location or manually enter a location.")
@@ -435,7 +453,7 @@ public class WeatherFragment extends Fragment implements
         return activeNetwork != null && activeNetwork.isConnected();
     }
 
-    private void updateCurrentConditionsCard() {
+    private void updateCurrentConditionsCard(boolean doRotationAnimations) {
         if (mCurrentConditions == null) {
             return;
         }
@@ -444,7 +462,7 @@ public class WeatherFragment extends Fragment implements
             mCurrentConditions.load(); // finish loading synchronously, if necessary
         }
 
-        if (!mCurrentConditions.isValid() || mCurrentConditions.isEmpty()) {
+        if (!mCurrentConditions.isValid() || mCurrentConditions.size() == 0) {
             return;
         }
 
@@ -477,12 +495,18 @@ public class WeatherFragment extends Fragment implements
         ImageView icon = (ImageView) mRootView.findViewById(R.id.current_icon);
         Picasso.with(getContext()).load(current.getIconUrl()).into(icon);
 
-        RotateAnimation anim = new RotateAnimation(0f, 360f, Animation.RELATIVE_TO_SELF, 0.5f,
-                Animation.RELATIVE_TO_SELF, 0.5f);
-        anim.setDuration(500);
+        if (doRotationAnimations) {
+            ObjectAnimator iconAnim = ObjectAnimator.ofFloat(icon, "rotationY", 0f, 360f);
+            iconAnim.setDuration(750);
+            iconAnim.setInterpolator(new AccelerateDecelerateInterpolator());
 
-        temp.startAnimation(anim);
-        icon.startAnimation(anim);
+            ObjectAnimator tempAnim = ObjectAnimator.ofFloat(temp, "rotationY", 0f, 360f);
+            tempAnim.setDuration(750);
+            tempAnim.setInterpolator(new AccelerateDecelerateInterpolator());
+
+            iconAnim.start();
+            tempAnim.start();
+        }
 
         Log.d(TAG, "updateCurrentConditionsCard: update complete");
     }
@@ -493,6 +517,8 @@ public class WeatherFragment extends Fragment implements
 
     private void requestWeatherSync(String locationQuery) {
         Log.d(TAG, "requestWeatherSync: requesting sync for " + locationQuery);
+        setProgressText(getString(R.string.retrieving_weather_data));
+
         String authority = getString(R.string.authority);
 
         // Cancel any existing syncs first
@@ -521,6 +547,46 @@ public class WeatherFragment extends Fragment implements
         mRealm.commitTransaction();
     }
 
+    private void startProgressBar() {
+        mProgressBar.setAlpha(0f);
+        mProgressBar.setVisibility(View.VISIBLE);
+        mProgressBar.animate().alpha(1f).setDuration(500);
+    }
+
+    private void setProgressText(String text) {
+        if (mProgressText.getVisibility() == View.VISIBLE) {
+            mProgressText.animate().alpha(0f).setDuration(250)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            mProgressText.setVisibility(View.GONE);
+                        }
+                    });
+        }
+        mProgressText.setText(text);
+        mProgressText.setAlpha(0f);
+        mProgressText.setVisibility(View.VISIBLE);
+        mProgressText.animate().alpha(1f).setDuration(500);
+    }
+
+    private void stopProgressBar(String from) {
+        mProgressBar.animate().alpha(0f).setDuration(1000)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        mProgressBar.setVisibility(View.GONE);
+                    }
+                });
+        mProgressText.animate().alpha(0f).setDuration(1000)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        mProgressText.setVisibility(View.GONE);
+                    }
+                });
+        Log.d(TAG, "stopProgressBar: from " + from);
+    }
+
 
     //==============================================================================================
     //========== Enumerate the possible cases when a sync is needed ================================
@@ -544,14 +610,9 @@ public class WeatherFragment extends Fragment implements
 
         @Override
         public void onChange(boolean selfChange, Uri uri) {
-            //TODO - move progress bar to fragment
-            ((MainActivity) getActivity()).stopProgressBar();
-
+            stopProgressBar("ContentObserver - onChange");
             if (uri.compareTo(StubProvider.WEATHER_URI_SUCCESS) == 0) {
                 Log.d(TAG, "onChange: sync completed successfully");
-                // hourly & daily forecast realm lists will notify their respective adapters automatically
-                // just need to update current conditions manually
-                //updateCurrentConditionsCard();
             } else {
                 Log.d(TAG, "onChange: sync failed");
                 Snackbar.make(
