@@ -10,13 +10,12 @@ import io.realm.annotations.PrimaryKey;
  * Created by charlie on 4/1/16.
  */
 public class CurrentConditionsRealm extends RealmObject {
-    public static final int CURRENT_CONDITIONS_PRIMARY_KEY = 42; // arbitrary; just needs to always be the same
+    private static final int CURRENT_CONDITIONS_PRIMARY_KEY = 42; // arbitrary; just needs to always be the same
 
     // Create a primary key so the object can be updated rather than deleted & recreated
-    @PrimaryKey int id;
+    @PrimaryKey private int id;
 
-    // Query string used to gather this data, and what time was it used
-    private String queryString;
+    // Also keep track of when database was last updated
     private long timeObtainedInMillis;
 
     // Display location
@@ -29,9 +28,7 @@ public class CurrentConditionsRealm extends RealmObject {
     public CurrentConditionsRealm() {}
 
     public void setValues(CurrentConditions currentConditions, String queryStringUsed) {
-        id = CURRENT_CONDITIONS_PRIMARY_KEY;
-
-        this.queryString = queryStringUsed;
+        this.id = CURRENT_CONDITIONS_PRIMARY_KEY;
         this.timeObtainedInMillis = System.currentTimeMillis();
 
         this.fullName = currentConditions.getDisplay_location().getFull();
@@ -58,10 +55,6 @@ public class CurrentConditionsRealm extends RealmObject {
             return -99999.0;
         }
         return Double.parseDouble(doublOrNA);
-    }
-
-    public String getQueryString() {
-        return queryString;
     }
 
     public long getTimeObtainedInMillis() {

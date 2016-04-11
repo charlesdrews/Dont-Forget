@@ -55,8 +55,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         String query = extras.getString(LOCATION_QUERY_KEY);
 
         if (query == null || query.isEmpty()) {
+            // this seems to happen just once when the app is first run
             Log.d(TAG, "onPerformSync: query string empty; cannot perform sync");
-            mContentResolver.notifyChange(StubProvider.WEATHER_URI_FAILURE, null, false);
             return;
         }
 
