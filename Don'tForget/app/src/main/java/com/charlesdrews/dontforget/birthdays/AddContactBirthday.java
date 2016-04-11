@@ -43,7 +43,8 @@ public class AddContactBirthday {
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
 
         mAutoComplete = new ContactAutoCompleteTextView(mContext);
-        final ContactSearchAdapter adapter = new ContactSearchAdapter(mContext, BirthdaysHelper.getAllContacts(mContext));
+        final ContactSearchAdapter adapter =
+                new ContactSearchAdapter(mContext, BirthdaysHelper.getAllContacts(mContext));
         mAutoComplete.setAdapter(adapter);
         mAutoComplete.setThreshold(2);
         mAutoComplete.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -97,6 +98,7 @@ public class AddContactBirthday {
         View view = LayoutInflater.from(mContext).inflate(R.layout.birthday_picker_body, null);
         final CheckBox inclYear = (CheckBox) view.findViewById(R.id.birthday_picker_checkbox);
         final DatePicker datePicker = (DatePicker) view.findViewById(R.id.birthday_datepicker);
+        datePicker.setMaxDate(System.currentTimeMillis());
 
         // set date of DatePicker to contact's birthday if known, else today
         String bday = BirthdaysHelper.getContactBirthdayByLookupKey(mContext, lookupKey);
@@ -164,7 +166,17 @@ public class AddContactBirthday {
                         boolean success = BirthdaysHelper
                                 .updateBirthdayInContactProvider(mContext, lookupKey, parts);
                         Log.d(TAG, "onClick: update birthday in contacts success? " + success);
-                        mListener.onBirthdayUpdated(success, name);
+                        mListener.onBirthdayUpdated(success, name, false);
+                    }
+                })
+                .setNeutralButton("Delete", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        //TODO
+                        boolean success = BirthdaysHelper
+                                .deleteBirthdayFromContactProvider(mContext, lookupKey);
+                        Log.d(TAG, "onClick: delete birthay success? " + success);
+                        mListener.onBirthdayUpdated(success, name, true);
                     }
                 });
 
@@ -172,6 +184,6 @@ public class AddContactBirthday {
     }
 
     public interface BirthdayUpdatedListener {
-        void onBirthdayUpdated(boolean success, String name);
+        void onBirthdayUpdated(boolean success, String name, boolean deleted);
     }
 }

@@ -48,4 +48,5 @@ public enum TimeOfDay {
 
     public static int getMin() { return 0; }
     public static int getMax() { return 3; }
+    public static int getCount() { return 4; }
 }

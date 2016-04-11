@@ -3,6 +3,7 @@ package com.charlesdrews.dontforget.tasks;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
@@ -20,10 +21,7 @@ import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.notifications.TimeOfDay;
 import com.charlesdrews.dontforget.tasks.model.TaskRealm;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
 
 import io.realm.Realm;
 import io.realm.RealmChangeListener;
@@ -32,9 +30,10 @@ import io.realm.Sort;
 
 
 /**
- * A simple {@link Fragment} subclass.
+ * View tasks & perform CRUD operations for task objects
  */
-public class TaskFragment extends Fragment {
+public class TaskFragment extends Fragment implements TaskRecyclerAdapter.OnSelectTaskListener {
+
     private static final String TAG = TaskFragment.class.getSimpleName();
 
     private Realm mRealm;
@@ -61,27 +60,21 @@ public class TaskFragment extends Fragment {
                         "timeOfDay", Sort.ASCENDING
                 );
 
-        mAdapter = new TaskRecyclerAdapter(getContext(), mTasks);
+        mAdapter = new TaskRecyclerAdapter(getContext(), mTasks, this);
 
         mTasks.addChangeListener(new RealmChangeListener() {
             @Override
             public void onChange() {
                 Log.d(TAG, "onChange: mTasks changed");
-                if (mTasks.size() == 0) {
-                    /* TODO
-                    mRealm.beginTransaction();
-                    TaskRealm firstTask = mRealm.createObject(TaskRealm.class);
-                    firstTask.setDate(new Date());
-                    firstTask.setTimeOfDay(TimeOfDay.LUNCHTIME.getInt());
-                    firstTask.setTaskText("Set some more tasks for yourself! :)");
-                    firstTask.setCompleted(false);
-                    firstTask.setVisible(true);
-                    mRealm.commitTransaction();
-                    */
-                }
                 mAdapter.notifyDataSetChanged();
             }
         });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        refreshTasks();
     }
 
     @Override
@@ -109,52 +102,82 @@ public class TaskFragment extends Fragment {
     public void refreshTasks() {
         mRealm.beginTransaction();
         // there is a bug w/ iterators in Realm, so use normal for loop
-        for (int i = 0; i < mTasks.size(); i++) {
+        for (int i = mTasks.size() - 1; i >= 0; i--) {
             TaskRealm task = mTasks.get(i);
             task.setVisible(!task.isCompleted());
         }
         mRealm.commitTransaction();
     }
 
-    public void addTask() {
-        Log.d(TAG, "addTask: starting");
+    public void addOrUpdateTask(final TaskRealm taskToUpdate) {
+        Log.d(TAG, "addOrUpdateTask: starting");
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle("Add new task");
-
+        // set up view for dialog body
         View view = LayoutInflater.from(getContext()).inflate(R.layout.task_adder_body, null);
-        final NumberPicker dayPicker = (NumberPicker) view.findViewById(R.id.add_task_day_picker);
+        final DayPicker dayPicker = (DayPicker) view.findViewById(R.id.add_task_day_picker);
         final NumberPicker timePicker = (NumberPicker) view.findViewById(R.id.add_task_time_picker);
         final EditText editText = (EditText) view.findViewById(R.id.add_task_input);
 
-        // set up dayPicker to show today & next 2 weeks
-        dayPicker.setMinValue(0);
-        dayPicker.setMaxValue(13);
-        dayPicker.setWrapSelectorWheel(false);
-        String[] days = new String[14];
-        SimpleDateFormat sdf = new SimpleDateFormat("EEE M/d", Locale.US);
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(System.currentTimeMillis());
-        for (int i = 0; i < 14; i++) {
-            days[i] = sdf.format(calendar.getTime());
-            calendar.add(Calendar.DATE, 1);
-        }
-        dayPicker.setDisplayedValues(days);
+        // set up DayPicker
+        dayPicker.setup(taskToUpdate);
 
-        // set up timePicker to show the 4 enum options
-        timePicker.setMaxValue(0);
-        timePicker.setMaxValue(3);
+        // set up timePicker to show the enum options
+        timePicker.setMinValue(TimeOfDay.getMin());
+        timePicker.setMaxValue(TimeOfDay.getMax());
         timePicker.setWrapSelectorWheel(true);
-        String[] times = new String[4];
-        for (int i = 0; i < 4; i++) {
+        String[] times = new String[TimeOfDay.getCount()];
+        for (int i = 0; i < TimeOfDay.getCount(); i++) {
             times[i] = TimeOfDay.getTimeOfDay(i).toString();
         }
         timePicker.setDisplayedValues(times);
 
-        // add views & buttons to dialog
-        builder.setView(view)
+        // set timePicker and editText initial values if available
+        if (taskToUpdate != null) {
+
+            int timeOfDay = taskToUpdate.getTimeOfDay();
+            if (timeOfDay >= TimeOfDay.getMin() && timeOfDay <= TimeOfDay.getMax()) {
+                timePicker.setValue(taskToUpdate.getTimeOfDay());
+            }
+
+            String taskText = taskToUpdate.getTaskText();
+            if (taskText != null && !taskText.isEmpty()) {
+                editText.setText(taskText);
+            }
+        }
+
+        // Initialize dialog builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext())
+                .setView(view)
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("OK", null);
+
+        if (taskToUpdate != null) {
+            builder.setTitle("Update task")
+                    .setNeutralButton("Delete", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            mRealm.beginTransaction();
+                            taskToUpdate.setVisible(false);
+                            mRealm.commitTransaction();
+
+                            Snackbar.make(
+                                    getActivity().findViewById(R.id.main_activity_root_view),
+                                    R.string.task_deleted_message,
+                                    Snackbar.LENGTH_LONG)
+                                    .setAction("UNDO", new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            mRealm.beginTransaction();
+                                            taskToUpdate.setVisible(true);
+                                            mRealm.commitTransaction();
+                                        }
+                                    })
+                                    .show();
+                        }
+                    });
+        } else {
+            builder.setTitle("Add new task");
+        }
 
         // set OK button on click listener after launching so it doesn't auto-dismiss
         final AlertDialog alertDialog = builder.create();
@@ -170,7 +193,12 @@ public class TaskFragment extends Fragment {
                             editText.requestFocus();
                         } else {
                             mRealm.beginTransaction();
-                            TaskRealm task = mRealm.createObject(TaskRealm.class);
+                            TaskRealm task;
+                            if (taskToUpdate != null) {
+                                task = taskToUpdate;
+                            } else {
+                                task = mRealm.createObject(TaskRealm.class);
+                            }
 
                             Calendar cal = Calendar.getInstance();
                             cal.setTimeInMillis(System.currentTimeMillis());
@@ -190,5 +218,10 @@ public class TaskFragment extends Fragment {
             }
         });
         alertDialog.show();
+    }
+
+    @Override
+    public void onTaskSelect(TaskRealm task) {
+        addOrUpdateTask(task);
     }
 }

@@ -296,7 +296,7 @@ public class WeatherFragment extends Fragment implements
     public void onConnectionSuspended(int i) {
         stopProgressBar("onConnectionSuspended");
         Snackbar.make(
-                getActivity().findViewById(android.R.id.content),
+                getActivity().findViewById(R.id.main_activity_root_view),
                 getString(R.string.unable_to_get_device_location),
                 Snackbar.LENGTH_LONG)
                 .show();
@@ -306,7 +306,7 @@ public class WeatherFragment extends Fragment implements
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         stopProgressBar("onConnectionFailed");
         Snackbar.make(
-                getActivity().findViewById(android.R.id.content),
+                getActivity().findViewById(R.id.main_activity_root_view),
                 getString(R.string.unable_to_get_device_location),
                 Snackbar.LENGTH_LONG)
                 .show();
@@ -363,7 +363,7 @@ public class WeatherFragment extends Fragment implements
                 Log.d(TAG, "onResume: sync needed, but no internet connection");
                 stopProgressBar("startSync - NO_NETWORK_CONNECTION");
                 Snackbar.make(
-                        getActivity().findViewById(android.R.id.content),
+                        getActivity().findViewById(R.id.main_activity_root_view),
                         getString(R.string.no_internet_connection),
                         Snackbar.LENGTH_LONG)
                         .show();
@@ -617,7 +617,7 @@ public class WeatherFragment extends Fragment implements
             } else {
                 Log.d(TAG, "onChange: sync failed");
                 Snackbar.make(
-                        getActivity().findViewById(android.R.id.content),
+                        getActivity().findViewById(R.id.main_activity_root_view),
                         getString(R.string.error_retrieving_weather_data),
                         Snackbar.LENGTH_LONG)
                         .show();

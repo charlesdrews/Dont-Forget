@@ -1,7 +1,24 @@
-<android.support.v7.widget.RecyclerView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/birthday_recycler"
+    android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".birthdays.BirthdaysFragment" />
+    android:layout_height="wrap_content"
+    tools:context=".birthdays.BirthdaysFragment">
+
+    <ProgressBar
+        android:id="@+id/birthday_progress_bar"
+        android:visibility="gone"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:indeterminate="true"
+        android:interpolator="@android:anim/bounce_interpolator"
+        android:layout_gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/birthday_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</LinearLayout>

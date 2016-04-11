@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
@@ -21,7 +22,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ProgressBar;
 
 import com.charlesdrews.dontforget.birthdays.BirthdaysFragment;
 import com.charlesdrews.dontforget.birthdays.AddContactBirthday;
@@ -31,17 +31,22 @@ import com.charlesdrews.dontforget.weather.WeatherFragment;
 
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener, ViewPager.OnPageChangeListener,
-        ProgressBarListener, AddContactBirthday.BirthdayUpdatedListener {
+        AddContactBirthday.BirthdayUpdatedListener {
+
     private static final String TAG = "MainActivity";
     public static final int CONTACTS_PERMISSION_REQUEST_CODE = 123;
     public static final int ACCESS_COARSE_LOCATION_PERMISSION_REQUEST_CODE = 124;
 
     private SharedPreferences mPreferences;
+    private CoordinatorLayout mRootView;
     private ViewPager mViewPager;
     private MyFragmentPagerAdapter mAdapter;
     private FloatingActionButton mFab;
-    private ProgressBar mProgressBar;
 
+
+    //==============================================================================================
+    //====== Activity lifecycle methods ============================================================
+    //==============================================================================================
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         // set up view pager & tab layout
+        mRootView = (CoordinatorLayout) findViewById(R.id.main_activity_root_view);
         mViewPager = (ViewPager) findViewById(R.id.view_pager);
         mAdapter = new MyFragmentPagerAdapter(getSupportFragmentManager());
         mViewPager.setAdapter(mAdapter);
@@ -77,63 +83,12 @@ public class MainActivity extends AppCompatActivity implements
         if (mFab != null) {
             mFab.setOnClickListener(this);
         }
-
-        //TODO - have separate progress bars in each fragment
-        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
-    }
-
-    @Override
-    public void onBackPressed() {
-        int currTab = mViewPager.getCurrentItem();
-        if (currTab > 0) {
-            mViewPager.setCurrentItem(currTab - 1);
-        } else {
-            super.onBackPressed();
-        }
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_refresh:
-                handleRefresh(mViewPager.getCurrentItem());
-                break;
-            case R.id.action_settings:
-                startActivity(new Intent(this, SettingsActivity.class));
-                break;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-        return true;
-    }
-
-    private void handleRefresh(int currentFragmentPosition) {
-        Fragment fragment = mAdapter.getActiveFragment(currentFragmentPosition);
-        if (fragment != null) {
-            switch (currentFragmentPosition) {
-
-                case MyFragmentPagerAdapter.WEATHER:
-                    Log.d(TAG, "handleRefresh: weather");
-                    ((WeatherFragment) fragment).startSync(true);
-                    break;
-
-                case MyFragmentPagerAdapter.TASKS:
-                    Log.d(TAG, "handleRefresh: tasks");
-                    ((TaskFragment) fragment).refreshTasks();
-                    break;
-
-                case MyFragmentPagerAdapter.BIRTHDAYS:
-                    Log.d(TAG, "handleRefresh: birthdays");
-                    ((BirthdaysFragment) fragment).syncContacts();
-                    break;
-            }
-        }
     }
 
     @Override
@@ -169,42 +124,23 @@ public class MainActivity extends AppCompatActivity implements
                 } else {
 
                     // access device location -> denied
-                    mPreferences.edit().putBoolean(getString(R.string.pref_key_weather_use_device_location), false).commit();
+                    mPreferences.edit()
+                            .putBoolean(getString(R.string.pref_key_weather_use_device_location), false)
+                            .commit();
                     snackbarMessage = "Permission to use device location denied";
                 }
                 break;
         }
 
         if (snackbarMessage != null) {
-            Snackbar.make(mFab, snackbarMessage, Snackbar.LENGTH_LONG).show();
+            Snackbar.make(mRootView, snackbarMessage, Snackbar.LENGTH_LONG).show();
         }
     }
 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.fab:
-                handleFabClick(mViewPager.getCurrentItem());
-                break;
-        }
-    }
 
-    private void handleFabClick(int currentFragmentPosition) {
-        switch (currentFragmentPosition) {
-
-            case MyFragmentPagerAdapter.TASKS:
-                TaskFragment fragment = (TaskFragment) mAdapter
-                        .getActiveFragment(MyFragmentPagerAdapter.TASKS);
-                fragment.addTask();
-                break;
-
-            case MyFragmentPagerAdapter.BIRTHDAYS:
-                AddContactBirthday dialog = new AddContactBirthday(this);
-                dialog.launchContactSearch();
-                break;
-        }
-    }
-
+    //==============================================================================================
+    //========== ViewPager listener callback methods ===============================================
+    //==============================================================================================
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
 
@@ -238,40 +174,111 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
-    //TODO - have separate progress bars in each fragment
-    @Override
-    public void startProgressBar() {
-        mProgressBar.setAlpha(0f);
-        mProgressBar.setVisibility(View.VISIBLE);
-        mProgressBar.animate().alpha(1f).setDuration(1000);
-    }
 
-    //TODO - have separate progress bars in each fragment
+    //==============================================================================================
+    //========== Other listener callback methods ===================================================
+    //==============================================================================================
     @Override
-    public void stopProgressBar() {
-        mProgressBar.animate().alpha(0f).setDuration(1000)
-                .setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        mProgressBar.setVisibility(View.GONE);
-                    }
-                });
+    public void onBackPressed() {
+        int currTab = mViewPager.getCurrentItem();
+        if (currTab > 0) {
+            mViewPager.setCurrentItem(currTab - 1);
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
-    public void onBirthdayUpdated(boolean success, String name) {
-        String snackbarMessage;
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_refresh:
+                handleRefresh(mViewPager.getCurrentItem());
+                break;
+            case R.id.action_settings:
+                startActivity(new Intent(this, SettingsActivity.class));
+                break;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+        return true;
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.fab:
+                handleFabClick(mViewPager.getCurrentItem());
+                break;
+        }
+    }
+
+    @Override
+    public void onBirthdayUpdated(boolean success, String name, boolean deleted) {
         mViewPager.setCurrentItem(MyFragmentPagerAdapter.BIRTHDAYS);
-        if (success) {
+        String snackbarMessage = null;
+
+        if (deleted && success) {
+            snackbarMessage = "Birthday deleted for " + name;
+
+        } else if (!deleted && success) {
             BirthdaysFragment fragment = (BirthdaysFragment) mAdapter
                     .getActiveFragment(MyFragmentPagerAdapter.BIRTHDAYS);
             fragment.syncContacts();
             snackbarMessage = "Birthday updated for " + name;
-        } else {
+
+        } else if (!deleted) {
             snackbarMessage = "Unable to update birthday for " + name;
         }
-        Snackbar.make(mViewPager, snackbarMessage, Snackbar.LENGTH_LONG).show();
+        // not concerned about unsuccessful delete; that's probably from a contact w/o a birthday
+
+        if (snackbarMessage != null && !snackbarMessage.isEmpty()) {
+            Snackbar.make(mRootView, snackbarMessage, Snackbar.LENGTH_LONG).show();
+        }
     }
+
+
+    //==============================================================================================
+    //========== Helper methods ====================================================================
+    //==============================================================================================
+    private void handleRefresh(int currentFragmentPosition) {
+        Fragment fragment = mAdapter.getActiveFragment(currentFragmentPosition);
+        if (fragment != null) {
+            switch (currentFragmentPosition) {
+
+                case MyFragmentPagerAdapter.WEATHER:
+                    Log.d(TAG, "handleRefresh: weather");
+                    ((WeatherFragment) fragment).startSync(true);
+                    break;
+
+                case MyFragmentPagerAdapter.TASKS:
+                    Log.d(TAG, "handleRefresh: tasks");
+                    ((TaskFragment) fragment).refreshTasks();
+                    break;
+
+                case MyFragmentPagerAdapter.BIRTHDAYS:
+                    Log.d(TAG, "handleRefresh: birthdays");
+                    ((BirthdaysFragment) fragment).syncContacts();
+                    break;
+            }
+        }
+    }
+
+    private void handleFabClick(int currentFragmentPosition) {
+        switch (currentFragmentPosition) {
+
+            case MyFragmentPagerAdapter.TASKS:
+                TaskFragment fragment = (TaskFragment) mAdapter
+                        .getActiveFragment(MyFragmentPagerAdapter.TASKS);
+                fragment.addOrUpdateTask(null);
+                break;
+
+            case MyFragmentPagerAdapter.BIRTHDAYS:
+                AddContactBirthday dialog = new AddContactBirthday(this);
+                dialog.launchContactSearch();
+                break;
+        }
+    }
+
 
     public void scheduleNotifications() {
         startService(new Intent(this, SchedulingService.class));

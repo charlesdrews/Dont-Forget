@@ -12,7 +12,7 @@ import io.realm.annotations.PrimaryKey;
 public class BirthdayRealm extends RealmObject {
     @PrimaryKey private int id;
 
-    private String name;
+    private String name, lookupKey;
     private Date nextBirthday;
     private int yearOfBirth;
     private boolean necessaryToNotify;
@@ -23,6 +23,14 @@ public class BirthdayRealm extends RealmObject {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getLookupKey() {
+        return lookupKey;
+    }
+
+    public void setLookupKey(String lookupKey) {
+        this.lookupKey = lookupKey;
     }
 
     public String getName() {
