@@ -1,6 +1,7 @@
 package com.charlesdrews.dontforget.weather.model;
 
 import io.realm.RealmObject;
+import io.realm.annotations.PrimaryKey;
 
 /**
  * Flatten out the nested class structure provided by Retrofit for the Weather Underground
@@ -9,6 +10,14 @@ import io.realm.RealmObject;
  * Created by charlie on 4/1/16.
  */
 public class CurrentConditionsRealm extends RealmObject {
+    private static final int CURRENT_CONDITIONS_PRIMARY_KEY = 42; // arbitrary; just needs to always be the same
+
+    // Create a primary key so the object can be updated rather than deleted & recreated
+    @PrimaryKey private int id;
+
+    // Also keep track of when database was last updated
+    private long timeObtainedInMillis;
+
     // Display location
     private String fullName, city, stateAbbrev, stateName, country, zip;
 
@@ -18,7 +27,10 @@ public class CurrentConditionsRealm extends RealmObject {
 
     public CurrentConditionsRealm() {}
 
-    public void setValues(CurrentConditions currentConditions) {
+    public void setValues(CurrentConditions currentConditions, String queryStringUsed) {
+        this.id = CURRENT_CONDITIONS_PRIMARY_KEY;
+        this.timeObtainedInMillis = System.currentTimeMillis();
+
         this.fullName = currentConditions.getDisplay_location().getFull();
         this.city = currentConditions.getDisplay_location().getCity();
         this.stateAbbrev = currentConditions.getDisplay_location().getState();
@@ -43,6 +55,10 @@ public class CurrentConditionsRealm extends RealmObject {
             return -99999.0;
         }
         return Double.parseDouble(doublOrNA);
+    }
+
+    public long getTimeObtainedInMillis() {
+        return timeObtainedInMillis;
     }
 
     public String getFullName() {

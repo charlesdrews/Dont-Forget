@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
@@ -65,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements
             mFab.setOnClickListener(this);
         }
 
+        //TODO - have separate progress bars in each fragment
         mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
 
         scheduleNotifications();
@@ -108,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements
 
                 case MyFragmentPagerAdapter.WEATHER:
                     Log.d(TAG, "handleRefresh: weather");
-                    ((WeatherFragment) fragment).startSync();
+                    ((WeatherFragment) fragment).startSync(true);
                     break;
 
                 case MyFragmentPagerAdapter.TASKS:
@@ -125,7 +127,8 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         String snackbarMessage = null;
@@ -157,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements
 
                     // access device location -> denied
                     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-                    prefs.edit().putBoolean(getString(R.string.pref_key_weather_geo), false).commit();
+                    prefs.edit().putBoolean(getString(R.string.pref_key_weather_use_device_location), false).commit();
                     snackbarMessage = "Permission to use device location denied";
                 }
                 break;
@@ -226,6 +229,7 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
+    //TODO - have separate progress bars in each fragment
     @Override
     public void startProgressBar() {
         mProgressBar.setAlpha(0f);
@@ -233,6 +237,7 @@ public class MainActivity extends AppCompatActivity implements
         mProgressBar.animate().alpha(1f).setDuration(1000);
     }
 
+    //TODO - have separate progress bars in each fragment
     @Override
     public void stopProgressBar() {
         mProgressBar.animate().alpha(0f).setDuration(1000)

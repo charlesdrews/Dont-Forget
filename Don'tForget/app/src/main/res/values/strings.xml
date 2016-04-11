@@ -11,6 +11,10 @@
     <string name="account_type">dontforget.charlesdrews.com</string>
     <string name="account">default_account</string>
 
+    <string name="unable_to_get_device_location">Unable to get device location; try again later</string>
+    <string name="no_internet_connection">No internet connection; try again later</string>
+    <string name="error_retrieving_weather_data">Error retrieving weather data; try again later</string>
+
     <string name="pref_title_notifications_category">Notifications</string>
     <string name="pref_key_notifications_category">pref_key_notifications_category</string>
     <string name="pref_title_notifications_enabled">Show reminder notifications</string>
@@ -45,8 +49,8 @@
 
     <string name="pref_title_weather_category">Weather</string>
     <string name="pref_key_weather_category">pref_key_weather_category</string>
-    <string name="pref_title_weather_geo">Use device location (GPS)</string>
-    <string name="pref_key_weather_geo">pref_key_weather_geo</string>
+    <string name="pref_title_weather_use_device_location">Use device location (GPS)</string>
+    <string name="pref_key_weather_use_device_location">pref_key_weather_geo</string>
     <string name="pref_title_weather_static_location">Manually set location</string>
     <string name="pref_key_weather_static_location">pref_key_weather_static_location</string>
     <string name="weather_static_location_default">No location set</string>
@@ -62,8 +66,6 @@
         <item>Fahrenheit</item>
         <item>Celsius</item>
     </string-array>
-
-    <string name="weather_last_sync_time_key">weather_last_sync_time_key</string>
 
     <string name="weather_data_credit">Data provided by:</string>
     <string name="weather_underground_logo_desc">Weather Underground logo</string>

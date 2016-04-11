@@ -15,7 +15,8 @@ public class StubProvider extends ContentProvider {
     public static final String AUTHORITY = "com.charlesdrews.dontforget.sync.StubProvider";
     public static final String BASE_URI_STRING = "content://" + AUTHORITY;
     public static final String WEATHER_PATH = "WEATHER";
-    public static final Uri WEATHER_URI = Uri.parse(BASE_URI_STRING + "/" + WEATHER_PATH);
+    public static final Uri WEATHER_URI_SUCCESS = Uri.parse(BASE_URI_STRING + "/" + WEATHER_PATH + "/SUCCESS");
+    public static final Uri WEATHER_URI_FAILURE = Uri.parse(BASE_URI_STRING + "/" + WEATHER_PATH + "/FAILURE");
 
     @Override
     public boolean onCreate() {

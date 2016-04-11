@@ -181,7 +181,7 @@ public class BirthdaysHelper {
 
     private static void saveBirthdaysToDb(Cursor cursor, Context context) {
         Log.d(TAG, "saveBirthdaysToDb: starting");
-        Realm realm = Realm.getInstance(new RealmConfiguration.Builder(context).build());
+        Realm realm = Realm.getDefaultInstance();
 
         int idColNum = cursor.getColumnIndex(ContactsContract.Data.CONTACT_ID);
         int nameColNum = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?

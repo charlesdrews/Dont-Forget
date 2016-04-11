@@ -50,15 +50,15 @@
         android:title="@string/pref_title_weather_category"
         android:key="@string/pref_key_weather_category">
         <SwitchPreference
-            android:title="@string/pref_title_weather_geo"
-            android:key="@string/pref_key_weather_geo"
+            android:title="@string/pref_title_weather_use_device_location"
+            android:key="@string/pref_key_weather_use_device_location"
             android:defaultValue="true"
             android:disableDependentsState="true" />
 
         <com.charlesdrews.dontforget.settings.WeatherLocationPreference
             android:title="@string/pref_title_weather_static_location"
             android:key="@string/pref_key_weather_static_location"
-            android:dependency="@string/pref_key_weather_geo"
+            android:dependency="@string/pref_key_weather_use_device_location"
             android:defaultValue="@string/weather_static_location_default" />
 
         <ListPreference
