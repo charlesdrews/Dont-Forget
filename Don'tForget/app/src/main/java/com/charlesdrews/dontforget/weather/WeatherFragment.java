@@ -206,18 +206,26 @@ public class WeatherFragment extends Fragment implements
             }
         });
 
-        // update user preferences
+        // update user preferences; check if any changed
         boolean previousUseMetricIndicator = mUseMetric;
-        updateUserPreferences(); // updates mUseMetric
+        boolean previousUseDeviceLocationIndicator = mCanUseDeviceLocation;
+        String previousStaticLocation = mStaticLocation;
+
+        updateUserPreferences();
+
         if (mUseMetric != previousUseMetricIndicator) {
             // if mUserMetric changed, update views
             mHourlyAdapter.setUseMetric(mUseMetric);
+            mHourlyAdapter.notifyDataSetChanged();
             mDailyAdapter.setUseMetric(mUseMetric);
+            mDailyAdapter.notifyDataSetChanged();
             updateCurrentConditionsCard(true);
         }
 
-        // initiate a new sync if last sync too long ago, or if never synced before
-        if (syncNeeded()) {
+        // initiate a new sync if a relevant preference changed, or if last sync too long ago
+        if (mCanUseDeviceLocation != previousUseDeviceLocationIndicator ||
+                !mStaticLocation.equals(previousStaticLocation) ||
+                syncNeeded()) {
             startSync(false); // false -> automatic sync, not sync manually initiated by user
         }
     }

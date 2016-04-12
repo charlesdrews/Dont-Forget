@@ -8,10 +8,12 @@ import android.util.Log;
 import com.charlesdrews.dontforget.R;
 
 /**
+ * Create account for sync adapter
  * Created by charlie on 3/31/16.
  */
 public class AccountHelper {
     private static final String TAG = AccountHelper.class.getSimpleName();
+    private static final int MAX_ATTEMPTS = 3;
 
     public static Account getAccount(Context context) {
         AccountManager accountManager = AccountManager.get(context);
@@ -30,11 +32,18 @@ public class AccountHelper {
                 context.getString(R.string.account_type)
         );
 
-        if (accountManager.addAccountExplicitly(newAccount, null, null)) {
-            Log.d(TAG, "createAccount: success");
-        } else {
-            Log.d(TAG, "createAccount: failed");
-            //TODO - try a second time?
+        int attempts = 0;
+        while (true) {
+            try {
+                accountManager.addAccountExplicitly(newAccount, null, null);
+                Log.d(TAG, "createAccount: success");
+                break;
+            } catch (Exception e) {
+                if (++attempts == MAX_ATTEMPTS) {
+                    throw e;
+                }
+                Log.d(TAG, "createAccount: retrying after error: " + e.getMessage());
+            }
         }
 
         return newAccount;

@@ -23,6 +23,7 @@ import com.charlesdrews.dontforget.weather.model.Location;
 import java.util.List;
 
 /**
+ * Customize EditTextPreference with an AutoCompleteTextView
  * Created by charlie on 3/29/16.
  */
 public class WeatherLocationPreference extends EditTextPreference {

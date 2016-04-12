@@ -8,6 +8,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
 /**
+ * Provide dividers to separate items in recycler views
  * Created by charlie on 3/28/16.
  */
 public class DividerItemDecoration extends RecyclerView.ItemDecoration {

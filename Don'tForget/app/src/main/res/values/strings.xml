@@ -13,6 +13,7 @@
 
     <string name="getting_device_location">Getting device location…</string>
     <string name="retrieving_weather_data">Retrieving weather data…</string>
+    <string name="weather_unavailable">Weather data unavailable</string>
     <string name="unable_to_get_device_location">Unable to get device location; try again later</string>
     <string name="no_internet_connection">No internet connection; try again later</string>
     <string name="error_retrieving_weather_data">Error retrieving weather data; try again later</string>

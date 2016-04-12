@@ -17,27 +17,19 @@ public class MyApplication extends Application {
 
     public static final int REALM_SCHEMA_VERSION = 1;
 
-    private static RealmMigration mMigration;
-
     @Override
     public void onCreate() {
         super.onCreate();
 
-        mMigration = getNewMigration();
-
         RealmConfiguration config = new RealmConfiguration.Builder(this)
                 .schemaVersion(REALM_SCHEMA_VERSION)
-                .migration(mMigration)
+                .migration(getMigration())
                 .build();
 
         Realm.setDefaultConfiguration(config);
     }
 
-    public static RealmMigration getMigration() {
-        return mMigration;
-    }
-
-    private static RealmMigration getNewMigration() {
+    private static RealmMigration getMigration() {
         return new RealmMigration() {
             @Override
             public void migrate(DynamicRealm realm, long oldVersion, long newVersion) {

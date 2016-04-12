@@ -9,7 +9,6 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.charlesdrews.dontforget.MyApplication;
 import com.charlesdrews.dontforget.weather.model.CurrentConditionsRealm;
 import com.charlesdrews.dontforget.weather.model.DailyForecastRealm;
 import com.charlesdrews.dontforget.weather.model.ForecastDay;
@@ -21,7 +20,6 @@ import com.charlesdrews.dontforget.weather.model.HourlyForecast;
 import java.util.List;
 
 import io.realm.Realm;
-import io.realm.RealmConfiguration;
 
 /**
  * Call WeatherUnderground API, save data in Realm db, notify content resolver

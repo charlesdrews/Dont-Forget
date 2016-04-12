@@ -9,6 +9,7 @@ import android.view.View;
 import com.charlesdrews.dontforget.settings.SettingsFragment;
 
 /**
+ * Show the settings fragment, and allow links to be opened in a browser
  * Created by charlie on 3/29/16.
  */
 public class SettingsActivity extends AppCompatActivity {

@@ -12,7 +12,6 @@ import android.text.Html;
 import android.util.Log;
 
 import com.charlesdrews.dontforget.MainActivity;
-import com.charlesdrews.dontforget.MyApplication;
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.birthdays.model.BirthdayRealm;
 import com.charlesdrews.dontforget.tasks.model.TaskRealm;
@@ -24,7 +23,6 @@ import java.util.Calendar;
 import java.util.Date;
 
 import io.realm.Realm;
-import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 import io.realm.Sort;
 
@@ -34,8 +32,6 @@ import io.realm.Sort;
  */
 public class NotificationsService extends IntentService {
     private static final String TAG = NotificationsService.class.getSimpleName();
-
-    public static final String ACTION_SNOOZE = "actionSnooze";
 
     private SharedPreferences mPrefs;
     private Realm mRealm;
@@ -53,12 +49,6 @@ public class NotificationsService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         mNow = new Date(System.currentTimeMillis());
-
-        String action = intent.getAction();
-        if (action != null && action.equals(ACTION_SNOOZE)) {
-            Log.d(TAG, "onHandleIntent: action snooze");
-            //TODO - don't need this action
-        }
 
         // make sure notification type was passed in the intent
         int notificationType = intent.getIntExtra(SchedulingService.NOTIFICATION_TYPE_KEY, -1);
@@ -139,8 +129,6 @@ public class NotificationsService extends IntentService {
      *   - Evening notification: show tomorrow's forecast
      */
     private String getWeatherText(int notificationType) {
-        //TODO - check if weather is out of date
-
         // grab weather data from db
         CurrentConditionsRealm current = mRealm.where(CurrentConditionsRealm.class).findFirst();
         RealmResults<HourlyForecastRealm> hourlyForecasts = mRealm.where(HourlyForecastRealm.class)
@@ -152,17 +140,20 @@ public class NotificationsService extends IntentService {
         if (current == null || hourlyForecasts == null || hourlyForecasts.size() == 0 ||
                 dailyForecasts == null || dailyForecasts.size() == 0) {
             Log.d(TAG, "getWeatherText: no weather data in database");
-            return "Weather unavailable";
+            return getString(R.string.weather_unavailable);
         }
 
         // get today & tomorrow
-        DailyForecastRealm today, tomorrow;
-        if (sameDate(dailyForecasts.get(0).getDate(), mNow)) {
-            today = dailyForecasts.get(0);
-            tomorrow = dailyForecasts.get(1);
-        } else {
-            today = dailyForecasts.get(1);
-            tomorrow = dailyForecasts.get(2);
+        DailyForecastRealm today = null, tomorrow = null;
+        for (int i = 0; i < dailyForecasts.size() - 1; i++) {
+            if (sameDate(dailyForecasts.get(i).getDate(), mNow)) {
+                today = dailyForecasts.get(i);
+                tomorrow = dailyForecasts.get(i + 1);
+                break;
+            }
+        }
+        if (today == null || (notificationType == TimeOfDay.EVENING.getInt() && tomorrow == null)) {
+            return getString(R.string.weather_unavailable);
         }
 
         // get weather unit preference
@@ -192,7 +183,7 @@ public class NotificationsService extends IntentService {
             }
         }
         if (probPrecipToday == -1) {
-            probPrecipToday = 0;
+            probPrecipToday = today.getProbOfPrecip();
         }
 
         int probPrecipTomorrow = tomorrow.getProbOfPrecip();

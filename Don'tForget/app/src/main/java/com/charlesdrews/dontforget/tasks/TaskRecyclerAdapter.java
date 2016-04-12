@@ -23,7 +23,6 @@ import io.realm.Realm;
  * Created by charlie on 4/3/16.
  */
 public class TaskRecyclerAdapter extends RecyclerView.Adapter<TaskRecyclerAdapter.TaskViewHolder> {
-    private static final String TAG = TaskRecyclerAdapter.class.getSimpleName();
 
     private Context mContext;
     private List<TaskRealm> mTasks;

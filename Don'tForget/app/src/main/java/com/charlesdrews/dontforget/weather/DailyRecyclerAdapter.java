@@ -51,10 +51,10 @@ public class DailyRecyclerAdapter
         SimpleDateFormat sdf = new SimpleDateFormat("EEE d", Locale.US);
         holder.date.setText(sdf.format(forecast.getDate()));
 
-        holder.tempHigh.setText(String.format("%d°/",
+        holder.tempHigh.setText(String.format(Locale.US, "%d°/",
                 (mUseMetric ? forecast.getTempHighCel() : forecast.getTempHighFahr())
         ));
-        holder.tempLow.setText(String.format("%d°",
+        holder.tempLow.setText(String.format(Locale.US, "%d°",
                 (mUseMetric ? forecast.getTempLowCel() : forecast.getTempLowFahr())
         ));
 

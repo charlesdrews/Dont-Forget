@@ -8,7 +8,7 @@ import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.support.design.widget.Snackbar;
-import android.util.Log;
+import android.support.v7.app.AlertDialog;
 
 import com.charlesdrews.dontforget.R;
 import com.charlesdrews.dontforget.notifications.SchedulingService;
@@ -49,11 +49,7 @@ public class SettingsFragment extends PreferenceFragment
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(getString(R.string.pref_key_weather_static_location))) {
-            Preference pref = findPreference(key);
-            pref.setSummary(((EditTextPreference) pref).getText());
-
-        } else if (key.equals(getString(R.string.pref_key_notifications_enabled))) {
+        if (key.equals(getString(R.string.pref_key_notifications_enabled))) {
             getActivity().startService(new Intent(getActivity(), SchedulingService.class));
 
         } else if (key.equals(getString(R.string.pref_key_notifications_days))) {
@@ -71,7 +67,47 @@ public class SettingsFragment extends PreferenceFragment
                     getString(R.string.notification_prefs_updated),
                     Snackbar.LENGTH_LONG)
                     .show();
+
+        } else if (key.equals(getString(R.string.pref_key_weather_use_device_location))) {
+            boolean useDeviceLocation = sharedPreferences.getBoolean(key, false);
+
+            String staticLocation = sharedPreferences.getString(
+                    getString(R.string.pref_key_weather_static_location), null);
+            boolean staticLocationNotSet = staticLocation == null ||
+                    staticLocation.isEmpty() ||
+                    staticLocation.equals(getString(R.string.weather_static_location_default));
+
+            if (!useDeviceLocation && staticLocationNotSet) {
+                launchLocationNeededAlert();
+            }
+
+        } else if (key.equals(getString(R.string.pref_key_weather_static_location))) {
+            Preference pref = findPreference(key);
+
+            String staticLocation = ((EditTextPreference) pref).getText();
+            pref.setSummary(staticLocation);
+
+            boolean useDeviceLocation = sharedPreferences
+                    .getBoolean(getString(R.string.pref_key_weather_use_device_location), false);
+
+            if (staticLocation == null || staticLocation.isEmpty() ||
+                    staticLocation.equals(getString(R.string.weather_static_location_default))) {
+                if (!useDeviceLocation) {
+                    launchLocationNeededAlert();
+                }
+            } else {
+
+            }
         }
+
+    }
+
+    private void launchLocationNeededAlert() {
+        new AlertDialog.Builder(getActivity())
+                .setTitle("Location needed")
+                .setMessage("Please enable device location or manually enter a location.")
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     @Override

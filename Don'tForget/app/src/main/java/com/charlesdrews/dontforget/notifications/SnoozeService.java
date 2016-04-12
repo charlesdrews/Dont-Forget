@@ -9,15 +9,18 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.util.Calendar;
+import java.util.Locale;
 
 /**
+ * CURRENTLY NOT IN USE - HAVING TROUBLE TRIGGERING THIS CODE - WILL USE IN FUTURE VERSIONS
+ *
  * Allow notifications to be snoozed
  * Created by charlie on 4/4/16.
  */
 public class SnoozeService extends IntentService {
     private static final String TAG = SnoozeService.class.getSimpleName();
 
-    private static final int SNOOZE_MINUTES = 1; //TODO
+    private static final int SNOOZE_MINUTES = 1; //TODO - update after testing
 
     public SnoozeService() {
         super(TAG);
@@ -42,7 +45,7 @@ public class SnoozeService extends IntentService {
         manager.cancel(notificationType);
         Toast.makeText(
                 SnoozeService.this,
-                String.format("Snoozing for %d minutes", SNOOZE_MINUTES),
+                String.format(Locale.US, "Snoozing for %d minutes", SNOOZE_MINUTES),
                 Toast.LENGTH_SHORT)
                 .show();
 
