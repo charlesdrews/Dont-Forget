@@ -1,10 +1,12 @@
+<a href='https://play.google.com/store/apps/details?id=com.charlesdrews.dontforget&utm_source=global_co&utm_medium=prtnr&utm_content=Mar2515&utm_campaign=PartBadge&pcampaignid=MKT-Other-global-all-co-prtnr-ap-PartBadge-Mar2515-1' target="_blank"><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/apps/en-play-badge.png' width="180" align="right" /></a>
+
 # <img src="images/icon.png" width="50"> Don't Forget
 
 ### Overview
 Never get caught in the rain without an umbrella again! Don't Forget gives you timely notifications - customized to your daily routine - in three categories: weather, tasks/errands, and birthdays. These convenient reminders deliver essential data to make your life simpler.
 
 ##### Weather <img src="http://i.imgur.com/GUl5yHe.png" width="175" align="right" />
-Weather reminders utilize data from the [Weather Underground API] (www.wunderground.com/weather/api/) and provide the essential info you need before you leave the house - likelihood of rain or snow, current, and daily high temps. Clicking through from the notification to the app itself gives you a complete view of current conditions, hourly forecasts (36 hours), and daily forecasts (10 days). The user can also switch between Fahrenheit and Celsius at any time. The most recent weather data is saved locally so that it is available without waiting for a refresh, even when the device is offline.
+Weather reminders utilize data from the <a href="http://www.wunderground.com/weather/api/" target="_blank">Weather Underground API</a> and provide the essential info you need before you leave the house - likelihood of rain or snow, current, and daily high temps. Clicking through from the notification to the app itself gives you a complete view of current conditions, hourly forecasts (36 hours), and daily forecasts (10 days). The user can also switch between Fahrenheit and Celsius at any time. The most recent weather data is saved locally so that it is available without waiting for a refresh, even when the device is offline.
 
 Weather data is based on the device's current location, or if the user prefers, the app can use a manually-entered location instead. The app provides autocomplete location suggestions when a static location is being entered. If use of the phone's location has been disabled and a manually-entered location has not yet been provided, the user is notified and directed to the Settings screen.
 
@@ -34,14 +36,3 @@ The task items are saved to the Realm database. New tasks are entered in an **Al
 Birthdays are gathered from the **Contacts Provider** in an Async Task and persisted to the Realm database along with user notification preference for each contact. Birthdays can be added/edited right in the app, again via the Contacts Provider. Searching through contacts is done via another extension of AutoCompleteTextView, and a customized DatePicker.
 
 Notifications are achieved via two **IntentService** classes. The first is a scheduler that uses the **Alarm Manager** to schedule executions of the second class - the notification service - according to the user's time of day preferences. The notification service gathers relevant data from Realm and launches Big Text Style notifications including only the items that are relevant at that date and time.
-
-### Unsolved Problems & Major Hurdles
-A short timeline was the biggest hurdle. I have a laundry list of additional features I play to implement for the next version of this app (they're in the "backlog" list in my Trello board). I also fell into a bit of "callback hell" in my weather fragment dealing with asynchronous connection to the Google API Client, asynchronous location requests (since the last known location was not nearly as readily available as the Google docs suggest), asynchronous API calls, and database queries. Some pen & paper flow-charting helped quite a bit, which is something I'll definitely remember for the future.
-
-Regarding unsolved problems, I don't think there are any bugs, per se, but you may notice there is a preference in settings for which days of the week to receive notifications, but the app currently ignores this setting. There was no technical difficulty here; just ran out of time. Also, when the user opens the time of day preferences, they default to the current time rather than pre-populate with their saved values. Again, this was due to running out of time. 
-
-### Links
-* [Trello board](https://trello.com/b/6LysxRTr/project-4) - James & Drew were both added to the board
-* [Play Store](https://play.google.com/store/apps/details?id=com.charlesdrews.dontforget) - available for download
-
- 
